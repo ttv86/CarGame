@@ -1,0 +1,26 @@
+{
+  "name": "electron-player",
+  "version": "0.0.0",
+  "description": "ElectronPlayer",
+  "main": "app.js",
+  "author": {
+    "name": ""
+  },
+  "scripts": {
+    "build": "tsc --build",
+    "clean": "tsc --build --clean",
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "@types/node": "^8.0.14",
+    "electron": "^9.1.0",
+    "ts-loader": "^8.0.0",
+    "typescript": "^3.2.2",
+    "webpack": "^4.43.0",
+    "webpack-cli": "^3.3.12"
+  },
+  "dependencies": {
+    "gl-matrix": "^3.3.0",
+    "source-map-loader": "^1.0.1"
+  }
+}
