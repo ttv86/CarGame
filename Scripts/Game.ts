@@ -28,7 +28,7 @@ export default class Game {
         this.style = style;
         this.renderer = renderer;
         this.texts = texts;
-        this.player = new Character(renderer, style, 105, 119, 4, 0);
+        this.player = new Character(renderer, style, 105.5, 119.5, 9, 0);
         this.renderer.worldEntities.push(this.player);
         //for (let i = 0; i < style.carInfos.length; i++) {
         //    this.addToWorld(this.createVehicle(i, 120 + (i * 2), 128, 10));
@@ -46,7 +46,7 @@ export default class Game {
     }
 
     public player: Character | null = null;
-    public camera: [number, number, number] = [105.5, 119.5, 7];
+    public camera: [number, number, number] = [105.5 * 64, 119.5*64, 1*64];
 
     /**
      * Update game logic.

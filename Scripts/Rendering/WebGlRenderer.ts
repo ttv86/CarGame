@@ -23,9 +23,6 @@ export default class WebGlRenderer implements IRenderer {
     private vertexPositionLocation: number;
     private textureCoordLocation: number;
     private textureMap = new Map<HTMLCanvasElement | HTMLImageElement, WebGLTexture>();
-    //private subtitleBuffer: TextBuffer;
-    //private locationBuffer: TextBuffer;
-    //private pointBuffer: TextBuffer;
     private width = 1;
     private height = 1;
 
@@ -59,8 +56,6 @@ export default class WebGlRenderer implements IRenderer {
         this.resized();
 
         // View is identity for now. Possibly will be removed later if not needed.
-        const view = mat4.identity(mat4.create());
-        this.gl.uniformMatrix4fv(this.viewMatrixLocation, false, view);
 
         this.gl.enable(WebGLRenderingContext.CULL_FACE);
         this.gl.cullFace(WebGLRenderingContext.FRONT);
@@ -75,24 +70,39 @@ export default class WebGlRenderer implements IRenderer {
     }
 
     public renderScene() {
-        const projection = mat4.perspective(mat4.create(), 0.84, this.width / this.height, 0.1, 1000);
-        const world = mat4.lookAt(mat4.create(), [this.x, this.altitude, this.y], [this.x, 0, this.y], [0, 0, -1]);
+        const projection = mat4.perspective(mat4.create(), 0.84, this.width / this.height, 0.1, 6400);
+        const world = mat4.lookAt(mat4.create(), [0, 0, -this.altitude], [0, 0, 0], [0, -1, 0]);
         this.gl.uniformMatrix4fv(this.projectionMatrixLocation, false, projection);
         this.gl.uniformMatrix4fv(this.worldMatrixLocation, false, world);
 
         this.gl.enable(WebGLRenderingContext.DEPTH_TEST);
+
+        const view = mat4.create();
         for (const model of this.models) {
-            const dist = Math.sqrt(Math.pow(model.center.x - this.x, 2) + Math.pow(model.center.y - this.y, 2));
-            if (dist < 30) {
+            //const dist = Math.sqrt(Math.pow(model.center.x - this.x, 2) + Math.pow(model.center.y - this.y, 2));
+            const dist = Math.abs(model.center.x - this.x) + Math.abs(model.center.y - this.y);
+            if (dist < 2000) {
+                mat4.identity(view);
+                mat4.translate(view, view, [-this.x, this.y, 0]);
+                this.gl.uniformMatrix4fv(this.viewMatrixLocation, false, view);
                 model.draw(this.gl, this.vertexPositionLocation, this.textureCoordLocation, this.useAlphaLocation);
             }
         }
 
         for (const entity of this.worldEntities) {
             if (entity.visible) {
+                mat4.identity(view);
+                mat4.translate(view, view, [entity.x * 64 - this.x, this.y - entity.y * 64, -255]);
+                mat4.rotateZ(view, view, entity.rotation);
+                mat4.translate(view, view, [-entity.width / 2, entity.height / 2, 0]);
+
+                this.gl.uniformMatrix4fv(this.viewMatrixLocation, false, view);
                 entity.render();
             }
         }
+
+        mat4.identity(view);
+        this.gl.uniformMatrix4fv(this.viewMatrixLocation, false, view);
 
         mat4.ortho(projection, 0, this.width, this.height, 0, 0.1, 100);
         mat4.lookAt(world, [0, 0, 10], [0, 0, 0], [0, 1, 0]);
@@ -178,7 +188,7 @@ export default class WebGlRenderer implements IRenderer {
             for (let yy = min; yy < max; yy += blockSize) {
                 for (let xx = min; xx < max; xx += blockSize) {
                     const modelData = {
-                        center: { x: xx + (blockSize / 2), y: yy + (blockSize / 2) },
+                        center: { x: (xx + (blockSize / 2)) * 64, y: (yy + (blockSize / 2)) * 64 },
                         positions: [] as number[],
                         textureCoords: [] as number[],
                         indices: [] as number[],
@@ -198,14 +208,14 @@ export default class WebGlRenderer implements IRenderer {
                                     continue;
                                 }
 
-                                const topNorthWest: Point = [x, 6 - i, y];
-                                const topNorthEast: Point = [x + 1, 6 - i, y];
-                                const topSouthWest: Point = [x, 6 - i, y + 1];
-                                const topSouthEast: Point = [x + 1, 6 - i, y + 1];
-                                const bottomNorthWest: Point = [x, 5 - i, y];
-                                const bottomNorthEast: Point = [x + 1, 5 - i, y];
-                                const bottomSouthWest: Point = [x, 5 - i, y + 1];
-                                const bottomSouthEast: Point = [x + 1, 5 - i, y + 1];
+                                const topNorthWest: Point = [(x) * 64, (y) * 64, (i) * 64];
+                                const topNorthEast: Point = [(x + 1) * 64, (y) * 64, (i) * 64];
+                                const topSouthWest: Point = [(x) * 64, (y + 1) * 64, (i) * 64];
+                                const topSouthEast: Point = [(x + 1) * 64, (y + 1) * 64, (i) * 64];
+                                const bottomNorthWest: Point = [(x) * 64, (y) * 64, (i + 1) * 64];
+                                const bottomNorthEast: Point = [(x + 1) * 64, (y) * 64, (i + 1) * 64];
+                                const bottomSouthWest: Point = [(x) * 64, (y + 1) * 64, (i + 1) * 64];
+                                const bottomSouthEast: Point = [(x + 1) * 64, (y + 1) * 64, (i + 1) * 64];
 
                                 adjustSlope(block.slope, topNorthWest, topNorthEast, topSouthWest, topSouthEast);
 
@@ -573,12 +583,12 @@ function adjustSlope(slope: number, northWest: Point, northEast: Point, southWes
     }
 
     const level = parts - ((slope - 1) % parts);
-    const lower = level / parts;
-    const upper = (level - 1) / parts;
-    up[0][1] -= upper;
-    up[1][1] -= upper;
-    down[0][1] -= lower;
-    down[1][1] -= lower;
+    const upper = (level / parts) * 64;
+    const lower = ((level - 1) / parts) * 64;
+    up[0][2] += lower;
+    up[1][2] += lower;
+    down[0][2] += upper;
+    down[1][2] += upper;
 }
 
 function clamp(value: number, min: number, max: number): number {
