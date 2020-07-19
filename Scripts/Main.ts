@@ -6,24 +6,11 @@ import Audio from "./DataReaders/Audio";
 import decryptTexts from "./DataReaders/TextDecryptor";
 import Font from "./DataReaders/Font";
 
+let gameDataDir: string | null = null;
 function loadFile(filename: string): Promise<DataView> {
     return new Promise((resolve, reject) => {
-        if (window.require) {
-            // We are in electron app. Use ipc-interface to request files from the server.
-            const { ipcRenderer } = window.require("electron");
-
-            ipcRenderer.on("got-file", (_, arg: DataView | null) => {
-                if (arg) {
-                    resolve(arg);
-                } else {
-                    reject();
-                }
-            });
-
-            ipcRenderer.send("require-file", filename);
-        } else {
-            // We are in browser. Use fetch-interface to request files from the server.
-            fetch(`/data/${filename}`)
+        function makeRequest(uri: string) {
+            fetch(uri)
                 .then(r => {
                     if (!r.ok) {
                         throw new Error(r.statusText);
@@ -32,6 +19,33 @@ function loadFile(filename: string): Promise<DataView> {
                     return r.arrayBuffer();
                 })
                 .then(ab => resolve(new DataView(ab)), () => reject());
+        }
+
+        if (window.require) {
+            // We are in electron app. Use ipc-interface to request file location.
+            if (!gameDataDir) {
+                const { ipcRenderer } = window.require("electron");
+
+                ipcRenderer.on("got-gameDataDir", (_, arg: string) => {
+                    if (arg) {
+                        gameDataDir = arg;
+                        if ((gameDataDir.substr(-1) !== "/") && (gameDataDir.substr(-1) !== "\\")) {
+                            gameDataDir += "/";
+                        }
+
+                        makeRequest(gameDataDir + filename);
+                    } else {
+                        reject();
+                    }
+                });
+
+                ipcRenderer.send("get-gameDataDir");
+            } else {
+                makeRequest(gameDataDir + filename);
+            }
+        } else {
+            // We are in browser. Use fetch-interface to request files from the server.
+            makeRequest(`/data/${filename}`);
         }
     });
 }

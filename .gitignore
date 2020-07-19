@@ -1,7 +1,7 @@
 # Ignore TypeScript generated files.
 app.js
-Scripts/*.js
-wwwroot/*.js
+Scripts/**/*.js
+wwwroot/**/*.js
 *.map
 
 # Ignore npm packages.
