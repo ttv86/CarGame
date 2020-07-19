@@ -1,7 +1,7 @@
 {
-  "name": "electron-player",
+  "name": "car-game",
   "version": "0.0.0",
-  "description": "ElectronPlayer",
+  "description": "Car Game",
   "main": "app.js",
   "author": {
     "name": ""
@@ -9,7 +9,8 @@
   "scripts": {
     "build": "tsc --build",
     "clean": "tsc --build --clean",
-    "start": "electron ."
+    "start-app": "electron .",
+    "start-web": "node app.js"
   },
   "devDependencies": {
     "@types/node": "^8.0.14",

@@ -12,7 +12,7 @@ function loadFile(filename: string): Promise<DataView> {
             // We are in electron app. Use ipc-interface to request files from the server.
             const { ipcRenderer } = window.require("electron");
 
-            ipcRenderer.on("got-files", (_, arg: DataView | null) => {
+            ipcRenderer.on("got-file", (_, arg: DataView | null) => {
                 if (arg) {
                     resolve(arg);
                 } else {
@@ -35,18 +35,6 @@ function loadFile(filename: string): Promise<DataView> {
         }
     });
 }
-
-//Promise.all([loadFile("AUDIO/VOCALCOM.SDT"), loadFile("AUDIO/VOCALCOM.RAW")])
-//    .then(([index, data]) => new Audio(index, data, false));
-
-//Promise.all([loadFile("AUDIO/Level000.SDT"), loadFile("AUDIO/Level000.RAW")])
-//    .then(([index, data]) => new Audio(index, data, true));
-
-//Promise.all([loadFile("AUDIO/MISBRIEF.SDT"), loadFile("AUDIO/MISBRIEF.RAW")])
-//    .then(([index, data]) => new Audio(index, data, false));
-
-//loadFile("sub2.fon")
-//    .then((dv) => new Font(dv));
 
 // Start game engine
 async function start() {
@@ -108,7 +96,9 @@ async function start() {
         }
 
         step(prev);
-    } catch {
+    } catch (error) {
+        console.error(error);
+        alert(`Error happened: ${error?.message ?? error.toString}`);
     }
 }
 

@@ -3,8 +3,8 @@ import { createServer, IncomingMessage, ServerResponse } from "http";
 import { createReadStream, existsSync, readFileSync } from "fs";
 import { extname, join } from "path";
 
-// Set this to where GTA is installed.
-const gtaDataDir = `d:/Games/Rockstar Games/Grand Theft Auto/GTADATA`;
+// Set this to where original game is installed.
+const gameDataDir = readFileSync("path.user", "utf-8");
 
 if (app) {
     // Electron found. Create window using it.
@@ -32,15 +32,15 @@ if (app) {
         ipcMain.on("require-file", (event: Electron.IpcMainEvent, filename: string) => {
             // Check ".." so files outside data directory aren't read.
             if (filename.indexOf("..") === -1) {
-                const file = join(gtaDataDir, filename);
+                const file = join(gameDataDir, filename);
                 if (existsSync(file)) {
                     const result = new DataView(new Uint8Array(readFileSync(file)).buffer);
-                    event.sender.send("got-files", result);
+                    event.sender.send("got-file", result);
                     return;
                 }
             }
 
-            event.sender.send("got-files", null);
+            event.sender.send("got-file", null);
         });
     }
 
@@ -68,7 +68,7 @@ if (app) {
 
         let dir = join(__dirname, "wwwroot");
         if (url.indexOf("/data/") === 0) {
-            dir = gtaDataDir;
+            dir = gameDataDir;
             url = url.substring(5);
         }
 
