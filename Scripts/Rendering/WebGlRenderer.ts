@@ -35,7 +35,7 @@ export default class WebGlRenderer implements IRenderer {
     public readonly worldEntities: Entity[] = [];
     public readonly guiEntities: Entity[] = [];
 
-    constructor(canvas: HTMLCanvasElement, subtitleFont: Font, pointFont: Font, locationFont: Font, lifeFont: Font) {
+    constructor(canvas: HTMLCanvasElement) {
         const gl = canvas.getContext("webgl");
         if (!gl) {
             throw new Error("Failed to get context");
@@ -72,14 +72,6 @@ export default class WebGlRenderer implements IRenderer {
         
         this.gl.enable(WebGLRenderingContext.BLEND);
         this.gl.blendFunc(WebGLRenderingContext.SRC_ALPHA, WebGLRenderingContext.ONE_MINUS_SRC_ALPHA);
-
-        //this.subtitleBuffer = this.createTextBuffer(40, this.height - 110, this.width - 50, 100, subtitleFont, "start", "bottom");
-        //this.locationBuffer = this.createTextBuffer(0, 0, this.width, 100, locationFont, "middle", "top");
-        //this.pointBuffer = this.createTextBuffer(0, 0, this.width, 100, pointFont, "end", "top");
-
-        //this.subtitleBuffer.setText("Answer the South Park phones to get jobs. Keep your eyes open for opportunities. Remember - you mess up, we mess you up.");
-        //this.locationBuffer.setText("Southwest Park");
-        //this.pointBuffer.setText("0");
     }
 
     public renderScene() {
@@ -93,6 +85,12 @@ export default class WebGlRenderer implements IRenderer {
             const dist = Math.sqrt(Math.pow(model.center.x - this.x, 2) + Math.pow(model.center.y - this.y, 2));
             if (dist < 30) {
                 model.draw(this.gl, this.vertexPositionLocation, this.textureCoordLocation, this.useAlphaLocation);
+            }
+        }
+
+        for (const entity of this.worldEntities) {
+            if (entity.visible) {
+                entity.render();
             }
         }
 
@@ -502,8 +500,8 @@ export default class WebGlRenderer implements IRenderer {
         return result;
     }
 
-    public createTextBuffer(x: number, y: number, width: number, height: number, font: Font, horizontalAlign: HorizontalAlign, verticalAlign: VerticalAlign): TextBuffer {
-        return new TextBuffer(this, font, x, y, width, height, horizontalAlign, verticalAlign);
+    public createTextBuffer(x: number, y: number, width: number, height: number, font: Font, options?: ITextBufferOptions): TextBuffer {
+        return new TextBuffer(this, font, x, y, width, height, options);
     }
 
     public render(item: unknown): void {
@@ -523,6 +521,16 @@ export default class WebGlRenderer implements IRenderer {
 
     public getViewSize(): [number, number] {
         return [this.width, this.height];
+    }
+
+    public clip(area: [number, number, number, number] | null): void {
+        if (area) {
+            const y = this.height - (area[1] + area[3]);
+            this.gl.scissor(area[0], y, area[2], area[3]);
+            this.gl.enable(WebGLRenderingContext.SCISSOR_TEST);
+        } else {
+            this.gl.disable(WebGLRenderingContext.SCISSOR_TEST);
+        }
     }
 }
 
@@ -594,7 +602,14 @@ export interface IRenderer {
     render(model: Model): void;
     render(sprite: Sprite): void;
     render(textBuffer: ITextBuffer): void;
+    clip(area: [number, number, number, number] | null): void;
     createModel(modelData: IModelData): void;
     createModelFromSprite(spriteInfo: ISpriteLocation, modelTexture: HTMLImageElement | HTMLCanvasElement, offsetX?: number, offsetY?: number): Model;
-    createTextBuffer(x: number, y: number, width: number, height: number, font: Font, horizontalAlign: HorizontalAlign, verticalAlign: VerticalAlign): ITextBuffer;
+    createTextBuffer(x: number, y: number, width: number, height: number, font: Font, options?: ITextBufferOptions): ITextBuffer;
+}
+
+export interface ITextBufferOptions {
+    horizontalAlign?: HorizontalAlign;
+    verticalAlign?: VerticalAlign;
+    wordWrap?: boolean;
 }

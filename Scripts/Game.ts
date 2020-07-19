@@ -22,18 +22,19 @@ export default class Game {
     private pager: Pager;
     private locationInfo: LocationInfo;
 
-    constructor(map: GameMap, style: Style, texts: Map<string, string>, renderer: IRenderer, subtitleFont: Font, pointFont: Font, locationFont: Font, lifeFont: Font) {
+    constructor(map: GameMap, style: Style, texts: Map<string, string>, renderer: IRenderer, subtitleFont: Font, pointFont: Font, locationFont: Font, lifeFont: Font, pagerFont: Font) {
         document.title = texts.get(`city${map.style - 1}`) ?? document.title;
         this.map = map;
         this.style = style;
         this.renderer = renderer;
         this.texts = texts;
         this.player = new Character(renderer, style, 105, 119, 4, 0);
+        this.renderer.worldEntities.push(this.player);
         //for (let i = 0; i < style.carInfos.length; i++) {
         //    this.addToWorld(this.createVehicle(i, 120 + (i * 2), 128, 10));
         //}
 
-        this.pager = new Pager(renderer, style);
+        this.pager = new Pager(renderer, style, pagerFont);
         this.renderer.guiEntities.push(this.pager);
 
         this.locationInfo = new LocationInfo(renderer, style, locationFont);

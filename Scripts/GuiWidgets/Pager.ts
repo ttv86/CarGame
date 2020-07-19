@@ -2,23 +2,54 @@ import Style from "../DataReaders/Style";
 import { IRenderer } from "../Rendering/WebGlRenderer";
 import Entity from "../Entity";
 import Sprite from "../Sprite";
+import { ITextBuffer } from "../Rendering/TextBuffer";
+import Font from "../DataReaders/Font";
 
 export default class Pager extends Entity {
     private light: Sprite;
     private lightVisible: boolean = false;
-    private time: number = 0;
+    private lightTime: number = 0;
+    private textTime: number = 0;
+    private textBuffer: ITextBuffer;
+    private position: number = 0;
+    private hideLimit: number = 0;
 
-    constructor(webGlRenderer: IRenderer, style: Style) {
-        super(webGlRenderer, style, 28, 0, 0, 0);
-        this.light = new Sprite(webGlRenderer, style, 29, 22, 38);
+    constructor(renderer: IRenderer, style: Style, font: Font) {
+        super(renderer, style, 28, 0, 0, 0);
+        this.light = new Sprite(renderer, style, 29, 22, 38);
+        this.textBuffer = renderer.createTextBuffer(22, 14, 116, 18, font, { verticalAlign: "middle", wordWrap: false });
+        this.visible = false;
+    }
+
+    public setText(text: string) {
+        this.position = 180;
+        this.textBuffer.setText(text);
+        const [width] = this.textBuffer.getDimensions();
+        this.hideLimit = -width;
+        this.visible = true;
     }
 
     public update(time: number) {
-        this.time += time;
+        if (!this.visible) {
+            return;
+        }
+
+        this.lightTime += time;
+        this.textTime += time;
+
+        // Move text by 50 pixels per second
+        while (this.textTime > 0.02) {
+            this.textTime -= 0.02;
+            this.position--;
+            this.textBuffer.setLocation(this.position, 14, 116, 18);
+            if (this.position <= this.hideLimit) {
+                this.visible = false;
+            }
+        }
 
         // Change blink status every half second.
-        while (this.time > 0.5) {
-            this.time -= 0.5;
+        while (this.lightTime > 0.5) {
+            this.lightTime -= 0.5;
             this.lightVisible = !this.lightVisible;
         }
     }
@@ -26,7 +57,11 @@ export default class Pager extends Entity {
     public render() {
         super.render();
         if (this.lightVisible) {
-            this.light.render();
+            this.renderer.render(this.light);
         }
+
+        this.renderer.clip([22, 14, 116, 18]);
+        this.renderer.render(this.textBuffer);
+        this.renderer.clip(null);
     }
 }

@@ -55,28 +55,27 @@ async function start() {
     try {
         // Load needed data files
         const mapPromise = loadFile("NYC.CMP").then(x => new GameMap(x));
+
+        // Meanwhile map is loading, start loading other data files.
         const textsPromise = loadFile("ENGLISH.FXT").then(x => decryptTexts(x));
         const font1Promise = loadFile("SUB2.FON").then(x => new Font(x)); // Brief
         const font2Promise = loadFile("SCORE2.FON").then(x => new Font(x)); // Scores
         const font3Promise = loadFile("STREET2.FON").then(x => new Font(x)); // Locations
         const font4Promise = loadFile("MISSMUL2.FON").then(x => new Font(x)); // Lives & multipliers
-        const font5Promise = loadFile("PAGER2.FON").then(x => new Font(x)); // Lives & multipliers
+        const font5Promise = loadFile("PAGER2.FON").then(x => new Font(x)); // Pager
         //const audio1Promise = Promise.all([loadFile("AUDIO/VOCALCOM.SDT"), loadFile("AUDIO/VOCALCOM.RAW")]).then(([index, data]) => new Audio(index, data, false));
 
+        // Wait here until map is loaded, we need information from it to load correct style and city-audio files.
         const map = await mapPromise;
         const levelNumber = map.style.toString().padStart(3, "0");
         const stylePromise = loadFile(`style${levelNumber}.g24`).then(x => new Style(x));
         //const audio2Promise = Promise.all([loadFile(`AUDIO/LEVEL${levelNumber}.SDT`), loadFile(`AUDIO/LEVEL${levelNumber}.RAW`)]).then(([index, data]) => new Audio(index, data, false));
 
-        const texts = await textsPromise;
-        const font1 = await font1Promise;
-        const font2 = await font2Promise;
-        const font3 = await font3Promise;
-        const font4 = await font4Promise;
-        const font5 = await font5Promise;
-        const style = await stylePromise;
-        //const audio1 = await audio1Promise;
-        //const audio2 = await audio2Promise;
+        // Wait here global data files.
+        const [texts, font1, font2, font3, font4, font5/*, audio1*/] = await Promise.all([textsPromise, font1Promise, font2Promise, font3Promise, font4Promise, font5Promise/*, audio1Promise*/]);
+
+        // Wait here city-specific data files.
+        const [style, audio2] = await Promise.all([stylePromise/*, audio2Promise*/]);
 
         const downKeys = new Set<number>();
         const canvas = document.createElement("canvas");
@@ -88,11 +87,10 @@ async function start() {
 
         window.addEventListener("keydown", (ev) => downKeys.add(ev.keyCode));
         window.addEventListener("keyup", (ev) => downKeys.delete(ev.keyCode));
-        //window.addEventListener("keydown", (ev) => console.log(ev.keyCode));
 
-        const renderer = new WebGlRenderer(canvas, font1, font2, font3, font4);
+        const renderer = new WebGlRenderer(canvas);
         renderer.buildCityModel(map, style);
-        const game = new Game(map, style, texts, renderer, font1, font2, font3, font4);
+        const game = new Game(map, style, texts, renderer, font1, font2, font3, font4, font5);
 
         window.addEventListener("resize", () => { renderer.resized(); game.resized(); });
 

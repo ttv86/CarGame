@@ -1,4 +1,4 @@
-import WebGlRenderer from "./WebGlRenderer";
+import WebGlRenderer, { ITextBufferOptions } from "./WebGlRenderer";
 import Font from "../DataReaders/Font";
 import { HorizontalAlign, VerticalAlign } from "../Types";
 import Model from "./Model";
@@ -12,17 +12,20 @@ export default class TextBuffer implements ITextBuffer {
     private text: string = "";
     private horizontalAlign: HorizontalAlign;
     private verticalAlign: VerticalAlign;
+    private wordWrap: boolean;
+    private dimensions: [number, number] = [0, 0];
 
     public readonly model: Model;
 
-    constructor(renderer: WebGlRenderer, font: Font, x: number, y: number, width: number, height: number, horizontalAlign: HorizontalAlign, verticalAlign: VerticalAlign) {
+    constructor(renderer: WebGlRenderer, font: Font, x: number, y: number, width: number, height: number, options?: ITextBufferOptions) {
         this.font = font;
         this.x = x;
         this.y = y;
         this.width = width;
         this.height = height;
-        this.horizontalAlign = horizontalAlign;
-        this.verticalAlign = verticalAlign;
+        this.horizontalAlign = options?.horizontalAlign ?? "start";
+        this.verticalAlign = options?.verticalAlign ?? "top";
+        this.wordWrap = options?.wordWrap ?? false;
 
         this.model = renderer.createTextModel({
             positions: [],
@@ -39,22 +42,24 @@ export default class TextBuffer implements ITextBuffer {
 
         const { textureCoords, widths } = this.font.getTextInfo(text);
         const splits: number[] = [];
-        let previousPossibleSplit: number | null = null;
-        let left = this.width;
-        for (let i = 0; i < widths.length; i++) {
-            if (text.charAt(i) === " ") {
-                previousPossibleSplit = i;
-            }
+        if (this.wordWrap) {
+            let previousPossibleSplit: number | null = null;
+            let left = this.width;
+            for (let i = 0; i < widths.length; i++) {
+                if (text.charAt(i) === " ") {
+                    previousPossibleSplit = i;
+                }
 
-            const w = widths[i];
-            if (left < w) {
-                const thisPos = (previousPossibleSplit ?? i) + 1;
-                splits.push(thisPos);
-                i = thisPos;
-                previousPossibleSplit = null;
-                left = this.width;
-            } else {
-                left -= w;
+                const w = widths[i];
+                if (left < w) {
+                    const thisPos = (previousPossibleSplit ?? i) + 1;
+                    splits.push(thisPos);
+                    i = thisPos;
+                    previousPossibleSplit = null;
+                    left = this.width;
+                } else {
+                    left -= w;
+                }
             }
         }
 
@@ -77,6 +82,7 @@ export default class TextBuffer implements ITextBuffer {
                 break;
         }
 
+        let maxX = this.x;
         let row = 0;
         let rowWidth = calculateWidth(widths, 0, splits[0]);
         let xx: number;
@@ -122,6 +128,7 @@ export default class TextBuffer implements ITextBuffer {
             const j = i * 4;
             indices.push(j + 0, j + 1, j + 2, j + 2, j + 1, j + 3);
             xx += w;
+            maxX = Math.max(maxX, xx);
         }
 
         this.model.updateModel({
@@ -129,6 +136,7 @@ export default class TextBuffer implements ITextBuffer {
             indices,
             textureCoords,
         });
+        this.dimensions = [maxX - this.x, this.font.height * (splits.length + 1)];
     }
 
     public setLocation(x: number, y: number, width: number, height: number): void {
@@ -137,6 +145,10 @@ export default class TextBuffer implements ITextBuffer {
         this.width = width;
         this.height = height;
         this.setText(this.text);
+    }
+
+    public getDimensions(): [number, number] {
+        return this.dimensions;
     }
 }
 
@@ -156,5 +168,6 @@ function calculateWidth(widths: readonly number[], startIndex: number, endIndex?
 export interface ITextBuffer {
     setText(text: string): void;
     setLocation(x: number, y: number, width: number, height: number): void;
-
+    /** Gets dimensions of currently set text. */
+    getDimensions(): [number, number];
 }

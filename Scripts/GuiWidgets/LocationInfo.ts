@@ -13,7 +13,7 @@ export default class LocationInfo extends Entity {
     constructor(renderer: IRenderer, style: Style, font: Font) {
         super(renderer, style, 25, 0, 0, 0);
         this.rightSide = new Sprite(renderer, style, 26, 220, 0);
-        this.textBuffer = renderer.createTextBuffer(0, 0, 440, 30, font, "middle", "middle");
+        this.textBuffer = renderer.createTextBuffer(0, 0, 440, 30, font, { horizontalAlign: "middle", verticalAlign: "middle" });
     }
 
     public update(time: number) {
