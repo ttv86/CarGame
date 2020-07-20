@@ -41,7 +41,7 @@ export default class Style {
         }
 
         // Animations
-        this.readAnimations(reader, animSize);
+        this.animationInfos = this.readAnimations(reader, animSize);
 
         // Palette
         const paletteData = reader.readBytes(clutSize);
@@ -55,10 +55,10 @@ export default class Style {
         paletteContainer.readIndex(paletteIndexData);
 
         // Object infos
-        this.readObjectInfo(reader, objectInfoSize, this.spriteOffsets["Object"]);
+        this.objectInfos = this.readObjectInfo(reader, objectInfoSize);
 
         // Car infos
-        this.readCarInfo(reader, carSize);
+        this.carInfos = this.readCarInfo(reader, carSize);
 
         // Sprites
         const spriteInfo = this.readSpriteInfo(reader, spriteInfoSize);
@@ -78,7 +78,11 @@ export default class Style {
 
     public readonly tiles: HTMLCanvasElement[] = [];
 
-    public readonly carInfos: ICarInfo[] = [];
+    public readonly carInfos: readonly ICarInfo[] = [];
+
+    public readonly objectInfos: readonly IObjectInfo[] = [];
+
+    public readonly animationInfos: readonly IAnimationInfo[] = [];
 
     public readonly spriteCanvas: HTMLCanvasElement;
 
@@ -86,16 +90,44 @@ export default class Style {
         return this.spriteInfo.get(spriteIndex) ?? null;
     }
 
-    private readAnimations(reader: BinaryReader, animSize: number) {
-        reader.position += animSize;
+    private readAnimations(reader: BinaryReader, animSize: number): readonly IAnimationInfo[] {
+        const result: IAnimationInfo[] = [];
+        const end = reader.position + animSize;
+        const count = reader.readUint8();
+        for (let i = 0; i < count; i++) {
+            const block = reader.readUint8();
+            const which = reader.readUint8();
+            const speed = reader.readUint8();
+            const frame_count = reader.readUint8();
+            const frames = reader.readBytes(frame_count);
+            result.push({ block, which, speed, frames });
+        }
+
+        reader.position = end;
+        return result;
     }
 
-    private readObjectInfo(reader: BinaryReader, objectInfoSize: number, spriteOffset: number) {
-        reader.position += objectInfoSize;
+    private readObjectInfo(reader: BinaryReader, objectInfoSize: number): readonly IObjectInfo[] {
+        const result: IObjectInfo[] = [];
+        const end = reader.position + objectInfoSize;
+        while (reader.position < end) {
+            var width = reader.readInt32();
+            var height = reader.readInt32();
+            var depth = reader.readInt32();
+            var spriteNumber = reader.readUint16(); // + spriteOffset;
+            var weight = reader.readUint16();
+            var aux = reader.readUint16();
+            var status = reader.readUint8();
+            var numInto = reader.readUint8();
+            var into = reader.readBytes(numInto * 2);
+            result.push({width, height, depth, spriteNumber, weight, aux, status, into});
+        }
+
+        return result;
     }
 
-    private readCarInfo(reader: BinaryReader, carSize: number) {
-        const spriteInfos: ISpriteInfo[] = [];
+    private readCarInfo(reader: BinaryReader, carSize: number): readonly ICarInfo[] {
+        const result: ICarInfo[] = [];
         const end = reader.position + carSize;
         while (reader.position < end) {
             const width = reader.readUint16();
@@ -109,8 +141,15 @@ export default class Style {
             const braking = reader.readInt16();
             const grip = reader.readInt16();
             const handling = reader.readInt16();
-            const remap24 = reader.readBytes(12 * 6); // <- ???
-            const remap8 = reader.readBytes(12); // <- ???
+            const remap24: IHslInfo[] = [];
+            for (let i = 0; i < 12; i++) {
+                const h = reader.readInt16();
+                const s = reader.readInt16();
+                const l = reader.readInt16();
+                remap24.push({ hue: h, saturation: s, lightness: l });
+            }
+
+            const remap8 = reader.readBytes(12); // No need. Can be skipped.
             const vtype = reader.readUint8();
             const model = reader.readUint8();
             const turning = reader.readUint8();
@@ -146,7 +185,7 @@ export default class Style {
                 const delta = reader.readInt16();
                 doors.push({ rpx, rpy, object, delta });
             }
-            this.carInfos.push({
+            result.push({
                 width,
                 height,
                 depth,
@@ -158,7 +197,7 @@ export default class Style {
                 braking,
                 grip,
                 handling,
-                remap24: [],
+                remap24,
                 vtype,
                 model,
                 turning,
@@ -189,10 +228,10 @@ export default class Style {
             });
         }
 
-        //console.table(this.carInfos);
+        return result;
     }
 
-    private readSpriteInfo(reader: BinaryReader, spriteInfoSize: number): ISpriteInfo[] {
+    private readSpriteInfo(reader: BinaryReader, spriteInfoSize: number): readonly ISpriteInfo[] {
         const spriteInfos: ISpriteInfo[] = [];
         const end = reader.position + spriteInfoSize;
         while (reader.position < end) {
@@ -221,7 +260,7 @@ export default class Style {
         }
     }
 
-    private generateTiles(tileData: number[], paletteContainer: PaletteContainer) {
+    private generateTiles(tileData: readonly number[], paletteContainer: PaletteContainer) {
         const tiles = tileData.length >> 12;
         const imageDataList: Uint8ClampedArray[] = [];
         for (let i = 0; i < tiles; i++) {
@@ -264,7 +303,7 @@ export default class Style {
         }
     }
 
-    private generateSprites(spriteData: number[], spriteInfo: ISpriteInfo[], paletteContainer: PaletteContainer): HTMLCanvasElement {
+    private generateSprites(spriteData: readonly number[], spriteInfo: readonly ISpriteInfo[], paletteContainer: PaletteContainer): HTMLCanvasElement {
         const imageDataList: [number, number, HTMLCanvasElement][] = [];
         for (const sprite of spriteInfo) {
             const imageData = new Uint8ClampedArray(sprite.w * sprite.h * 4);
@@ -417,12 +456,12 @@ export interface ICarInfo {
     braking: number;
     grip: number;
     handling: number;
-    remap24: IHslInfo[]
+    remap24: readonly IHslInfo[]
     vtype: number;
     model: number;
     turning: number;
     damagable: number;
-    value: number[];
+    value: readonly number[];
     cx: number;
     cy: number;
     moment: number;
@@ -444,7 +483,7 @@ export interface ICarInfo {
     horn: number;
     soundFunction: number;
     fastChangeFlag: number;
-    doors: IDoor[];
+    doors: readonly IDoor[];
 }
 
 interface ISpriteInfo {
@@ -469,7 +508,30 @@ interface IDoor {
 interface IHslInfo {
     hue: number;
     saturation: number;
-    luminance: number;
+    lightness: number;
+}
+
+interface IAnimationInfo
+{
+    block: number;
+
+    /** 0 - Side, 1 - Lid */
+    which: number;
+
+    /** Ticks per frame */
+    speed: number;
+    frames: number[];
+}
+
+interface IObjectInfo {
+    width: number;
+    height: number;
+    depth: number;
+    spriteNumber: number;
+    weight: number;
+    aux: number;
+    status: number;
+    into: readonly number[];
 }
 
 export interface ISpriteLocation {

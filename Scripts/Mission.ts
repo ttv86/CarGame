@@ -673,15 +673,7 @@ export default class Mission {
      * @param angle Angle of the parked car.
      */
     private initParked(line: number, hasOne: boolean, coordinates: ICoordinates, carType: number, angle: number): Vehicle | null {
-        //const info = this.game.getVehicleInfo(carType);
-        //if (info) {
-        //    // Add half square to both x and y coordinates, because vehicle should be middle of the tile.
-        //    const vehicle = new Vehicle(coordinates.x + 0.5, coordinates.y + 0.5, coordinates.z, angle, info);
-        //    this.game.addToWorld(vehicle);
-        //    return vehicle;
-        //}
-
-        return null;
+        return this.initParkedPixels(line, hasOne, { x: coordinates.x * 64 + 32, y: coordinates.y * 64 + 32, z: coordinates.z * 64 + 32 }, carType, angle);
     }
 
     /**
@@ -755,21 +747,24 @@ export default class Mission {
      * @param line Line number of command.
      * @param hasOne True if line has mysterious one in front.
      * @param coordinates. Command coordinates in full tiles. (0-255)
-     * @param param1 Unknown parameter. Possible values: 2, 1, 12, 6, 9, 10, 11, 13, 14, 3, 4, 15
-     * @param param2 Unknown parameter. Possible values: 500, 700, 99, 50, 20, 0, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 75, 40, 3000, 2508, 2100, 2600
+     * @param powerupType Unknown parameter. Possible values: 1 - Pistol, 2 - Machine Gun, 3 - Rocket Launcher, 4 - Flame thrower, 6 - Car Speed Up, 9 - Bribe, 10 - Armor, 11 - Multiplier Up, 12 - Get Out Of Jail Free, 13 - Extra Life, 14 - Info sign, 15 - Extra life
+     * @param ammoOrInfoNumber If powerupType is Info Sign, tells what info is shown. Value 1 - 99 is ammo. Value > 99 starts a frenzy.
      */
-    private initPowerup(line: number, hasOne: boolean, coordinates: ICoordinates, param1: number, param2: number): void {
+    private initPowerup(line: number, hasOne: boolean, coordinates: ICoordinates, powerupType: number, ammoOrInfoNumber: number): void {
     }
 
     /**
-     * Unknown function. Used 6 times.
+     * Sets level secret mission count.
      * @param line Line number of command.
      * @param hasOne True if line has mysterious one in front.
      * @param coordinates. Not used.
-     * @param param1 Unknown parameter. Could be init line reference. Possible values: 7, 12, 15, 17
+     * @param initialMissionCount Number of secret missions when level starts.
      * @param param2 Unknown parameter. Always 0
      */
-    private initSecretMissionCounter(line: number, hasOne: boolean, coordinates: never, param1: number, param2: number): void {
+    private initSecretMissionCounter(line: number, hasOne: boolean, coordinates: never, initialMissionCount: number, param2: number): void {
+        const counter = new Counter(initialMissionCount);
+        counter.valueChange = (newValue) => this.game.secretMissions = newValue;
+        this.game.secretMissions = initialMissionCount;
     }
 
     /**
@@ -823,14 +818,15 @@ export default class Mission {
     }
 
     /**
-     * Unknown function. Used 6 times.
+     * Sets map target score.
      * @param line Line number of command.
      * @param hasOne True if line has mysterious one in front.
      * @param coordinates. Not used.
-     * @param param1 Unknown parameter. Possible values: 1000000, 2000000, 3000000, 5000000
+     * @param targetScore Target score to obtain.
      * @param param2 Unknown parameter. Always 0
      */
-    private initTargetScore(line: number, hasOne: boolean, coordinates: never, param1: number, param2: number): void {
+    private initTargetScore(line: number, hasOne: boolean, coordinates: never, targetScore: number, param2: number): void {
+        this.game.targetScore = targetScore;
     }
 
     /**
@@ -853,6 +849,7 @@ export default class Mission {
      * @param param2 Unknown parameter. Possible values: 0, 2, 1, 3, 4, 5, 6, 8, 31
      */
     private initTrigger(line: number, hasOne: boolean, coordinates: ICoordinates, param1: number, param2: number): void {
+
     }
 
     /**
@@ -892,9 +889,9 @@ export default class Mission {
     }
 
     /**
-     * Unknown function. Used 402 times.
+     * Sets mission guide arrow to a specific object.
      * @param line Line number of command.
-     * @param param1 Unknown parameter. Could be init line reference. Possible values: 137, 68, 69, 70, 71, 191, 72, 254, 224, 105, 240, 230, 231, 233, 157, 86, 151, 229, 201, 158, 244, 167, 245, 38, 16, 487, 504, 106, 107, 108, 144, 227, 193, 192, 145, 332, 267, 177, 112, 121, 56, 198, 611, 616, 612, 615, 318, 320, 270, 271, 272, 276, 221, 566, 339, 568, 599, 603, 166, 630, 637, 32, 44, 241, 141, 9, 116, 138, 118, 100, 119, 3050, 3067, 135, 269, 122, 125, 128, 182, 129, 190, 200, 195, 196, 202, 197, 203, 3790, 3740, 205, 209, 162, 110, 113, 160, 3130, 3020, 60, 3000, 57, 42, 3010, 17, 249, 213, 235, 173, 174, 175, 176, 18, 41, 61, 3821, 3500, 3501, 3502, 3503, 78, 59, 55, 52, 2610, 3820, 48, 49, 50, 51, 275, 370, 300, 490, 700, 710, 720, 730, 930, 1278, 1375, 1340, 1465, 1570, 1510, 1520, 1530, 1580, 1590, 1600, 1635, 1610, 111, 1970, 0, 2010, 30, 63, 43, 64, 13, 37, 6, 6110, 6240, 7300, 7460, 7610, 7620, 7871, 5900, 5901, 5902, 5903, 7870, 5800, 5801, 5802, 5803, 90, 178, 394, 248, 253, 255, 256, 282, 291, 380, 404, 405, 406, 407, 409, 20915, 461, 473, 474, 662, 1040, 1200, 24010, 4, 5, 7, 24020, 1, 2, 3, 24030, 67, 1010, 2050, 3040, 4170, 6180, 8010, 8020, 9190, 11300, 14060, 15040, 15060, 15190, 34, 16060, 16080
+     * @param targetId Object to point to.
      * @param param2 Unknown parameter. Could be command line reference. Possible values: 0, 430, 447, 405, 940, 1425, 1432, 2490, 3480, 4500, 4510, 4530, 4540, 4550, -1, 970, 980, 2910, 2920, 2930, 6700, 6800, 7925, 7932, 8950, 9987, 9994, 16787, 16761, 16770, 16780, 17800, 18880, 18870, 19795, 19831, 19870, 31350, 326
      * @param param3 Unknown parameter. Could be command line reference. Possible values: 0, 430, 447, 405, 940, 1425, 1432, 2490, 3480, 4500, 4510, 4530, 4540, 4550, -1, 970, 980, 2910, 2920, 2930, 6700, 6800, 7925, 7932, 8950, 9987, 9994, 16787, 16761, 16770, 16780, 17800, 18880, 18870, 19795, 19831, 19870, 31350
      * @param param4 Unknown parameter. Always 0
@@ -1816,13 +1813,13 @@ export default class Mission {
     }
 
     /**
-     * Unknown function. Used 684 times.
+     * Show huge text middle of the screen.
      * @param line Line number of command.
      * @param param1 Unknown parameter. Always 0
      * @param param2 Unknown parameter. Could be command line reference. Possible values: 0, 4315, 221, 312, 525, 526, 2499, 11026, 11126, 11248, 11348, 12026, 12126, -1, 32270, 670, 32271, 810, 32272, 29977, 32273, 31077, 32274, 31177, 32275, 32255, 31584, 32276, 32256, 31624, 32277, 32257, 31664, 32278, 32258, 31704, 32279, 32259, 31744, 32280, 32260, 31824, 32281, 32261, 31864, 32282, 32262, 31944, 32283, 32263, 31984, 32284, 32264, 32244, 770, 31784, 31904, 32265, 32266, 32477, 32285, 32577, 32286, 32677
      * @param param3 Unknown parameter. Could be command line reference. Possible values: 0, 4315, -1
      * @param param4 Unknown parameter. Always 0
-     * @param param5 Unknown parameter. Could be text reference. Possible values: 2501, 2500, 2503, 4000, 2504, 1530, 2516, 2505, 2514, 2517, 2515, 4001, 4002, 3846, 3815, 3245, 3828, 3829, 3456
+     * @param text Reference to text.
      */
     private commandMessageBrief(line: number, param1: number, param2: number, param3: number, param4: number, param5: number): void {
     }
@@ -1912,15 +1909,15 @@ export default class Mission {
     }
 
     /**
-     * Unknown function. Used 111 times.
+     * Shows a text in pager.
      * @param line Line number of command.
      * @param param1 Unknown parameter. Always 0
      * @param param2 Unknown parameter. Possible values: -1, 0
      * @param param3 Unknown parameter. Possible values: 0, -1
      * @param param4 Unknown parameter. Always 0
-     * @param param5 Unknown parameter. Could be text reference. Possible values: 1400, 1401, 1402, 1403, 1427, 1423, 1424, 1410, 1411, 1412, 1413, 1414, 1404, 1405, 1406, 1407, 1408, 1409, 1422, 1415, 1416, 1417, 1418, 1419, 1420, 1421, 2197, 2191, 2600, 2601, 2602, 2603, 2604, 2605, 2606, 2607, 2608, 2609, 2610, 2611, 2612, 2613, 2614, 2615, 2616, 2617, 2618, 2619, 2001, 2620, 2621, 2622, 2623, 2624, 2625, 2626, 2627, 2628, 2629, 2630, 2631, 2632, 2633, 2634, 2635, 2636, 2637, 2638, 2639, 3830, 3831, 3832, 3833, 3834, 3835, 3836
+     * @param text Text reference.
      */
-    private commandPBrief(line: number, param1: number, param2: number, param3: number, param4: number, param5: number): void {
+    private commandPBrief(line: number, param1: number, param2: number, param3: number, param4: number, text: number): void {
     }
 
     /**
@@ -2332,15 +2329,15 @@ export default class Mission {
     }
 
     /**
-     * Unknown function. Used 3494 times.
+     * Waits for a given amount of ticks.
      * @param line Line number of command.
      * @param param1 Unknown parameter. Possible values: 0, 100
-     * @param param2 Unknown parameter. Could be command line reference. Possible values: 0, 15, 406, 810, 892, 906, 1200, 1434, -1, 1911, 2490, 6910, 8010, 280, 2697, 4320, 5004, 9500, 16790, 17803, 18883, 20010, 600, 900, 323, 611, 670, 477, 505, 492, 338, 599, 2729, 3100, 3260, 17650, 1300, 5345, 19025, 1550, 1700, 1718, 1883, 2001, 2013, 2110, 760, 854, 970, 2200, 2530, 2494, 15015, 25670, 6800, 4310, 6870, 1327, 1680, 2560, 3511, 3510, 4309, 4070, 4810, 4968, 5800, 6370, 6672, 6485, 18000, 7125, 7500, 19570, 6400, 21570, 2000, 23000, 23450, 27010, 29670, 1500, 2581, 8430, 11539, 27250, 27450, 27650, 5074, 5390, 7255, 7358, 7451, 7554, 20086, 20087, 20116, 20117, 20166, 20167, 20216, 20217, 22302
+     * @param nextCommand Next command line. -1 to stop processing. 0 to jump nect line.
      * @param param3 Unknown parameter. Possible values: 30, 0, 892, 1200, -1, 8010, 280, 50, 4320, 5004, 10, 9500, 600, 900
-     * @param param4 Unknown parameter. Possible values: 30, 5, 10, 20, 15, 200, 60, 40, 25, 50, 620, 75, 150, 45, 550, 115, 250, 400, 640, 175, 3000, 65, 95, 120, 600, 700, 1000, 900, 800, 500, 100, 3, 1, 0, 530, 540, 35, 80, 225, 3500, 110, 625, 70, 55, 300, 1500, 4500, 2000, 2500, 750, 8000, 11000, 7500, 15000, 90, 4000, 2250, 2750, 4, 2, 160, 10000, 3125, 2375, 2625, 1750, 375, 650, 450, 2100, 1900, 1700, 130, 5000, 2125, 3250
-     * @param param5 Unknown parameter. Possible values: 0, 500, 25000, 50000, 30000, 5000, 15000, 1000000, 10000, 20000, 35000, 2000, 60000, 40000
+     * @param time Ticks to wait.
+     * @param money Get money when wait expires.
      */
-    private commandSurvive(line: number, param1: number, param2: number, param3: number, param4: number, param5: number): void {
+    private commandSurvive(line: number, param1: number, nextCommand: number, param3: number, param4: number, money: number): void {
     }
 
     /**
@@ -2414,7 +2411,27 @@ export default class Mission {
      */
     private commandWreckATrain(line: number, param1: number, param2: number, param3: number, param4: number, param5: number): void {
     }
+}
 
+class Counter {
+    private currentValue: number;
+
+    constructor(initialValue: number) {
+        this.currentValue = initialValue;
+    }
+
+    public valueChange: ((newValue: number) => void) | null = null;
+
+    public get value() {
+        return this.currentValue;
+    }
+
+    public set value(newValue) {
+        if (this.currentValue !== newValue) {
+            this.currentValue = newValue;
+            this.valueChange?.(newValue);
+        }
+    }
 }
 
 interface ICoordinates {

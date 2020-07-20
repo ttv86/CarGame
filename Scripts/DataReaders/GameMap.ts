@@ -67,7 +67,7 @@ export default class GameMap {
             const top = reader.readUint8();
             const bottom = reader.readUint8();
             const lid = reader.readUint8();
-            blocks.push(new MapBlock(typeMap, typeMapExt, left, right, top, bottom, lid));
+            blocks.push(new MapBlock(blocks.length, typeMap, typeMapExt, left, right, top, bottom, lid));
         }
 
         for (let y = 0; y < 256; y++) {
@@ -185,8 +185,8 @@ export default class GameMap {
 }
 
 class MapBlock {
-    constructor(typeMap: number, typeMapExt: number, left: number, right: number, top: number, bottom: number, lid: number) {
-
+    constructor(index: number, typeMap: number, typeMapExt: number, left: number, right: number, top: number, bottom: number, lid: number) {
+        this.index = index;
         this.direction = (typeMap >> 0) & 15;
         this.type = (typeMap >> 4) & 7;
         this.flat = ((typeMap >> 7) & 1) !== 0;
@@ -206,6 +206,7 @@ class MapBlock {
         this.lid = lid;
     }
 
+    public readonly index: number;
     public readonly direction: number;
     public readonly type: number;
     public readonly flat: boolean;

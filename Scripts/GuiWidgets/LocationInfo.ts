@@ -34,7 +34,7 @@ export default class LocationInfo extends Entity {
     public showText(text: string) {
         if (text) {
             this.textBuffer.setText(text);
-            this.time = 10;
+            this.time = 5;
             this.visible = true;
         } else {
             this.time = 0;
