@@ -12,7 +12,7 @@ import Sprite from "../Sprite";
 const blockSize = 16;
 export default class WebGlRenderer implements IRenderer {
     private canvas: HTMLCanvasElement;
-    private gl: WebGLRenderingContext;
+    private gl: WebGL2RenderingContext;
     private program: WebGLProgram;
     private models: Model[] = [];
     private samplerLocation: WebGLUniformLocation | null;
@@ -33,7 +33,7 @@ export default class WebGlRenderer implements IRenderer {
     public readonly guiEntities: Entity[] = [];
 
     constructor(canvas: HTMLCanvasElement) {
-        const gl = canvas.getContext("webgl");
+        const gl = canvas.getContext("webgl2");
         if (!gl) {
             throw new Error("Failed to get context");
         }
@@ -64,7 +64,7 @@ export default class WebGlRenderer implements IRenderer {
 
         this.gl.activeTexture(WebGLRenderingContext.TEXTURE0);
         this.gl.uniform1i(this.samplerLocation, 0);
-        
+
         this.gl.enable(WebGLRenderingContext.BLEND);
         this.gl.blendFunc(WebGLRenderingContext.SRC_ALPHA, WebGLRenderingContext.ONE_MINUS_SRC_ALPHA);
     }
