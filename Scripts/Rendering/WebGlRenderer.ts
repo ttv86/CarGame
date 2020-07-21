@@ -147,26 +147,77 @@ export default class WebGlRenderer implements IRenderer {
         bigContext.fillStyle = "rgb(0,0,0,0.0)";
         bigContext.fillRect(0, 0, 2048, 2048);
 
-        const tileCount = style.sideTiles + style.lidTiles + style.auxTiles;
-        const tilesPerRow = 30;
+        const tileIndexes = new Map<string, number>();
+        for (let x = 0; x < 256; x++) {
+            for (let y = 0; y < 256; y++) {
+                for (let z = 0; z < 6; z++) {
+                    const block = map.blocks[x][y][z];
+                    if (block != null) {
+                        if (block.lid > 0) {
+                            const key = `L${block.lid}/${block.remap}`;
+                            if (!tileIndexes.has(key)) {
+                                tileIndexes.set(key, (style.sideTiles + block.lid) * 4 + block.remap);
+                            }
+                        }
+
+                        if (block.bottom > 0) {
+                            const key = `S${block.bottom}`;
+                            if (!tileIndexes.has(key)) {
+                                tileIndexes.set(key, block.bottom * 4);
+                            }
+                        }
+
+                        if (block.top > 0) {
+                            const key = `S${block.top}`;
+                            if (!tileIndexes.has(key)) {
+                                tileIndexes.set(key, block.top * 4);
+                            }
+                        }
+
+                        if (block.left > 0) {
+                            const key = `S${block.left}`;
+                            if (!tileIndexes.has(key)) {
+                                tileIndexes.set(key, block.left * 4);
+                            }
+                        }
+
+                        if (block.right > 0) {
+                            const key = `S${block.right}`;
+                            if (!tileIndexes.has(key)) {
+                                tileIndexes.set(key, block.right * 4);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        const tilesPerRow = 20;
         const multiplier = 2048 / tilesPerRow;
         const margin = (multiplier - 64) / 2
-        for (let i = 0; i < tileCount; i++) {
+        const helperCanvas = document.createElement("canvas");
+        helperCanvas.width = 64;
+        helperCanvas.height = 64;
+        const helperContext = helperCanvas.getContext("2d")!;
+        const values = [...tileIndexes.values()];
+        for (let i = 0; i < values.length; i++) {
+            const imageData = style.tiles[values[i]];
+            helperContext.putImageData(imageData, 0, 0);
             const x = margin + Math.floor(i % tilesPerRow) * multiplier;
             const y = margin + Math.floor(i / tilesPerRow) * multiplier;
             if (margin > 0) {
-                bigContext.drawImage(style.tiles[i], 0, 0, 1, 1, x - margin, y - margin, margin, margin);
-                bigContext.drawImage(style.tiles[i], 63, 0, 1, 1, x + 64, y - margin, margin, margin);
-                bigContext.drawImage(style.tiles[i], 0, 63, 1, 1, x - margin, y + 64, margin, margin);
-                bigContext.drawImage(style.tiles[i], 63, 63, 1, 1, x + 64, y + 64, margin, margin);
+                bigContext.drawImage(helperCanvas, 0, 0, 1, 1, x - margin, y - margin, margin, margin);
+                bigContext.drawImage(helperCanvas, 63, 0, 1, 1, x + 64, y - margin, margin, margin);
+                bigContext.drawImage(helperCanvas, 0, 63, 1, 1, x - margin, y + 64, margin, margin);
+                bigContext.drawImage(helperCanvas, 63, 63, 1, 1, x + 64, y + 64, margin, margin);
 
-                bigContext.drawImage(style.tiles[i], 0, 0, 64, 1, x, y - margin, 64, margin);
-                bigContext.drawImage(style.tiles[i], 0, 0, 1, 64, x - margin, y, margin, 64);
-                bigContext.drawImage(style.tiles[i], 0, 63, 64, 1, x, y + 64, 64, margin);
-                bigContext.drawImage(style.tiles[i], 63, 0, 1, 64, x + 64, y, margin, 64);
+                bigContext.drawImage(helperCanvas, 0, 0, 64, 1, x, y - margin, 64, margin);
+                bigContext.drawImage(helperCanvas, 0, 0, 1, 64, x - margin, y, margin, 64);
+                bigContext.drawImage(helperCanvas, 0, 63, 64, 1, x, y + 64, 64, margin + 1);
+                bigContext.drawImage(helperCanvas, 63, 0, 1, 64, x + 64, y, margin + 1, 64);
             }
 
-            bigContext.drawImage(style.tiles[i], x, y);
+            bigContext.drawImage(helperCanvas, x, y);
         }
 
         //const image = document.createElement("img");
@@ -186,7 +237,7 @@ export default class WebGlRenderer implements IRenderer {
         const max = 256 + (blockSize / 2);
         for (let yy = min; yy < max; yy += blockSize) {
             for (let xx = min; xx < max; xx += blockSize) {
-                this.blocks.push(new CityBlock(this, map, style, blockSize, margin, tilesPerRow, xx, yy, tileSize, multiplier, bigTexture));
+                this.blocks.push(new CityBlock(this, map, style, blockSize, margin, tilesPerRow, xx, yy, tileSize, multiplier, bigTexture, tileIndexes));
             }
         }
     }

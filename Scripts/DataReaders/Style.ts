@@ -65,7 +65,7 @@ export default class Style {
         const spriteGraphics = reader.readBytes(spriteGraphicsSize);
 
         this.spriteCanvas = this.generateSprites(spriteGraphics, spriteInfo, paletteContainer);
-        this.generateTiles(tileData, paletteContainer);
+        this.generateTiles(tileData, this.sideTiles, this.lidTiles, this.auxTiles, paletteContainer);
     }
 
     public readonly sideTiles: number;
@@ -76,7 +76,7 @@ export default class Style {
 
     public readonly spriteOffsets: Record<SpriteType, number> = {} as Record<SpriteType, number>;
 
-    public readonly tiles: HTMLCanvasElement[] = [];
+    public readonly tiles: ImageData[] = [];
 
     public readonly carInfos: readonly ICarInfo[] = [];
 
@@ -260,10 +260,11 @@ export default class Style {
         }
     }
 
-    private generateTiles(tileData: readonly number[], paletteContainer: PaletteContainer) {
+    private generateTiles(tileData: readonly number[], sideTileCount: number, lidTileCount: number, auxTileCount: number, paletteContainer: PaletteContainer) {
         const tiles = tileData.length >> 12;
+        const remapTiles = ((sideTileCount + lidTileCount + auxTileCount) * 4);
         const imageDataList: Uint8ClampedArray[] = [];
-        for (let i = 0; i < tiles; i++) {
+        for (let i = 0; i < remapTiles; i++) {
             const imageData = new Uint8ClampedArray(0x4000); // Each tile is 64 pixels * 64 pixels * 4 colors.            
             imageDataList.push(imageData);
         }
@@ -272,34 +273,29 @@ export default class Style {
         let pos = 0;
         for (let dataY = 0; dataY < rows; dataY++) {
             for (let dataX = 0; dataX < 256; dataX++) {
-                var tile = (dataX >> 6) + ((dataY >> 6) << 2);
+                const tile = (dataX >> 6) + ((dataY >> 6) << 2);
                 if (tile < tiles) {
-                    var x = dataX % 64;
-                    var y = dataY % 64;
-                    var palette = paletteContainer.getTilePalette(tile);
-                    const color = palette[tileData[pos]];
-                    const imageData = imageDataList[tile];
-                    const pixelIndex = (y << 8) + (x << 2);
-                    imageData[pixelIndex + 0] = color.r;
-                    imageData[pixelIndex + 1] = color.g;
-                    imageData[pixelIndex + 2] = color.b;
-                    imageData[pixelIndex + 3] = color.a;
+                    const x = dataX % 64;
+                    const y = dataY % 64;
+                    const tileIndex = tile * 4;
+                    for (let r = 0; r < 4; r++) {
+                        const palette = paletteContainer.getTilePalette(tile, r);
+                        const color = palette[tileData[pos]];
+                        const imageData = imageDataList[tileIndex + r];
+                        const pixelIndex = (y << 8) + (x << 2);
+                        imageData[pixelIndex + 0] = color.r;
+                        imageData[pixelIndex + 1] = color.g;
+                        imageData[pixelIndex + 2] = color.b;
+                        imageData[pixelIndex + 3] = color.a;
+                    }
+
                     pos++;
                 }
             }
         }
 
         for (const imageData of imageDataList) {
-            const canvas = document.createElement("canvas");
-            canvas.width = 64;
-            canvas.height = 64;
-            const context = canvas.getContext("2d");
-            if (!context) {
-                throw new Error("Failed to get canvas rendering context while generating tiles.");
-            }
-
-            context.putImageData(new ImageData(imageData, 64), 0, 0);
-            this.tiles.push(canvas);
+            this.tiles.push(new ImageData(imageData, 64));
         }
     }
 
@@ -435,8 +431,8 @@ class PaletteContainer {
         }
     }
 
-    public getTilePalette(tileIndex: number) {
-        return this.palettes[this.index[tileIndex << 2]];
+    public getTilePalette(tileIndex: number, remap: number) {
+        return this.palettes[this.index[(tileIndex << 2) + remap]];
     }
 
     public getSpritePalette(spriteIndex: number) {

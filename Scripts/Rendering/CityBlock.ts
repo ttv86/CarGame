@@ -19,7 +19,7 @@ export default class CityBlock {
     private readonly multiplier: number;
     private readonly tilesPerRow: number;
 
-    constructor(renderer: WebGlRenderer, map: GameMap, style: Style, blockSize: number, margin: number, tilesPerRow: number, xx: number, yy: number, tileSize: number, multiplier: number, bigTexture: HTMLCanvasElement) {
+    constructor(renderer: WebGlRenderer, map: GameMap, style: Style, blockSize: number, margin: number, tilesPerRow: number, xx: number, yy: number, tileSize: number, multiplier: number, bigTexture: HTMLCanvasElement, tileIndexes: Map<string, number>) {
         this.style = style;
         this.tileSize = tileSize;
         this.margin = margin;
@@ -28,6 +28,7 @@ export default class CityBlock {
 
         const animLidBlocks = style.animationInfos.filter(x => x.which === 1).map(x => x.block);
         const animSideBlocks = style.animationInfos.filter(x => x.which === 0).map(x => x.block);
+        const keys = [...tileIndexes.keys()];
 
         for (let f = 0; f < 2; f++) {
             let animTexCoords: number[] = [];
@@ -74,7 +75,7 @@ export default class CityBlock {
                                 ...topNorthEast,
                                 ...topSouthWest,
                                 ...topSouthEast);
-                            const tileIndex = style.sideTiles + block.lid;
+                            const tileIndex = keys.indexOf(`L${block.lid}/${block.remap}`);
                             const tileX = (margin + Math.floor(tileIndex % tilesPerRow) * multiplier) / 2048;
                             const tileY = (margin + Math.floor(tileIndex / tilesPerRow) * multiplier) / 2048;
                             switch (block.lidRotation) {
@@ -132,7 +133,7 @@ export default class CityBlock {
                                     ...bottomSouthEast);
                             }
 
-                            const tileIndex = block.bottom;
+                            const tileIndex = keys.indexOf(`S${block.bottom}`);
                             const tileX = (margin + Math.floor(tileIndex % tilesPerRow) * multiplier) / 2048;
                             const tileY = (margin + Math.floor(tileIndex / tilesPerRow) * multiplier) / 2048;
                             if (block.flipTopBottom) {
@@ -171,7 +172,7 @@ export default class CityBlock {
                                     ...bottomSouthEast,
                                     ...bottomNorthEast);
                             }
-                            const tileIndex = block.right;
+                            const tileIndex = keys.indexOf(`S${block.right}`);
                             const tileX = (margin + Math.floor(tileIndex % tilesPerRow) * multiplier) / 2048;
                             const tileY = (margin + Math.floor(tileIndex / tilesPerRow) * multiplier) / 2048;
                             if (block.flipLeftRight) {
@@ -201,7 +202,7 @@ export default class CityBlock {
                                 ...topSouthWest,
                                 ...bottomNorthWest,
                                 ...bottomSouthWest);
-                            const tileIndex = block.left;
+                            const tileIndex = keys.indexOf(`S${block.left}`);
                             const tileX = (margin + Math.floor(tileIndex % tilesPerRow) * multiplier) / 2048;
                             const tileY = (margin + Math.floor(tileIndex / tilesPerRow) * multiplier) / 2048;
 
@@ -232,7 +233,7 @@ export default class CityBlock {
                                 ...topNorthWest,
                                 ...bottomNorthEast,
                                 ...bottomNorthWest);
-                            const tileIndex = block.top;
+                            const tileIndex = keys.indexOf(`S${block.top}`);
                             const tileX = (margin + Math.floor(tileIndex % tilesPerRow) * multiplier) / 2048;
                             const tileY = (margin + Math.floor(tileIndex / tilesPerRow) * multiplier) / 2048;
                             if (block.flipTopBottom) {
@@ -268,14 +269,14 @@ export default class CityBlock {
                 this.flatModelData = modelData;
             }
 
-            if (animTexCoords.length > 0) {
-                this.animEnabled = true;
-                if (f == 0) {
-                    this.solidTextureCoords = animTexCoords;
-                } else {
-                    this.flatTextureCoords = animTexCoords;
-                }
-            }
+            //if (animTexCoords.length > 0) {
+            //    this.animEnabled = true;
+            //    if (f == 0) {
+            //        this.solidTextureCoords = animTexCoords;
+            //    } else {
+            //        this.flatTextureCoords = animTexCoords;
+            //    }
+            //}
         }
     }
 
@@ -285,7 +286,7 @@ export default class CityBlock {
         if (this.animEnabled) {
             this.updateTime += time;
             while (this.updateTime > 0.28) {
-                const auxStart = this.style.lidTiles + this.style.sideTiles;
+                const auxStart = this.style.sideTiles + (this.style.lidTiles * 4);
 
                 this.updateTime -= 0.28;
                 if (this.solidModelData && (this.solidTextureCoords.length > 0)) {
