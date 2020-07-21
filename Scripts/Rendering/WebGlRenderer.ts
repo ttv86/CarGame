@@ -8,6 +8,7 @@ import TextBuffer, { ITextBuffer } from "./TextBuffer";
 import { HorizontalAlign, VerticalAlign, Point } from "../Types";
 import * as Shaders from "./Shaders";
 import Sprite from "../Sprite";
+import CityBlock from "./CityBlock";
 
 const blockSize = 16;
 export default class WebGlRenderer implements IRenderer {
@@ -23,8 +24,9 @@ export default class WebGlRenderer implements IRenderer {
     private vertexPositionLocation: number;
     private textureCoordLocation: number;
     private textureMap = new Map<HTMLCanvasElement | HTMLImageElement, WebGLTexture>();
-    private width = 1;
-    private height = 1;
+    private blocks: CityBlock[] = [];
+    private width = 320;
+    private height = 240;
 
     public x: number = 0;
     public y: number = 0;
@@ -142,28 +144,27 @@ export default class WebGlRenderer implements IRenderer {
             throw new Error(":(");
         }
 
-        const pager = style.spritePosition(29);
-        const pagerLight = style.spritePosition(30);
-
         bigContext.fillStyle = "rgb(0,0,0,0.0)";
         bigContext.fillRect(0, 0, 2048, 2048);
 
         const tileCount = style.sideTiles + style.lidTiles + style.auxTiles;
-        const tilesPerRow = 24;
-        const multiplier = 2048 / 24; // = 85,333333333333333333333333333333
+        const tilesPerRow = 30;
+        const multiplier = 2048 / tilesPerRow;
         const margin = (multiplier - 64) / 2
         for (let i = 0; i < tileCount; i++) {
             const x = margin + Math.floor(i % tilesPerRow) * multiplier;
             const y = margin + Math.floor(i / tilesPerRow) * multiplier;
-            bigContext.drawImage(style.tiles[i], 0,  0,  1, 1, x - margin, y - margin, margin, margin);
-            bigContext.drawImage(style.tiles[i], 63, 0,  1, 1, x + 64, y - margin, margin, margin);
-            bigContext.drawImage(style.tiles[i], 0,  63, 1, 1, x - margin, y + 64, margin, margin);
-            bigContext.drawImage(style.tiles[i], 63, 63, 1, 1, x + 64, y + 64, margin, margin);
+            if (margin > 0) {
+                bigContext.drawImage(style.tiles[i], 0, 0, 1, 1, x - margin, y - margin, margin, margin);
+                bigContext.drawImage(style.tiles[i], 63, 0, 1, 1, x + 64, y - margin, margin, margin);
+                bigContext.drawImage(style.tiles[i], 0, 63, 1, 1, x - margin, y + 64, margin, margin);
+                bigContext.drawImage(style.tiles[i], 63, 63, 1, 1, x + 64, y + 64, margin, margin);
 
-            bigContext.drawImage(style.tiles[i], 0, 0, 64, 1, x, y - margin, 64, margin);
-            bigContext.drawImage(style.tiles[i], 0, 0, 1, 64, x - margin, y, margin, 64);
-            bigContext.drawImage(style.tiles[i], 0, 63, 64, 1, x, y + 64, 64, margin);
-            bigContext.drawImage(style.tiles[i], 63, 0, 1, 64, x + 64, y, margin, 64);
+                bigContext.drawImage(style.tiles[i], 0, 0, 64, 1, x, y - margin, 64, margin);
+                bigContext.drawImage(style.tiles[i], 0, 0, 1, 64, x - margin, y, margin, 64);
+                bigContext.drawImage(style.tiles[i], 0, 63, 64, 1, x, y + 64, 64, margin);
+                bigContext.drawImage(style.tiles[i], 63, 0, 1, 64, x + 64, y, margin, 64);
+            }
 
             bigContext.drawImage(style.tiles[i], x, y);
         }
@@ -181,220 +182,11 @@ export default class WebGlRenderer implements IRenderer {
 
         const tileSize = (1 / 32);
 
-        const models: Model[] = [];
         const min = -(blockSize / 2);
         const max = 256 + (blockSize / 2);
-        for (let f = 0; f < 2; f++) {
-            for (let yy = min; yy < max; yy += blockSize) {
-                for (let xx = min; xx < max; xx += blockSize) {
-                    const modelData = {
-                        center: { x: (xx + (blockSize / 2)) * 64, y: (yy + (blockSize / 2)) * 64 },
-                        positions: [] as number[],
-                        textureCoords: [] as number[],
-                        indices: [] as number[],
-                        texture: bigTexture,
-                        transparent: f === 1,
-                    }
-
-                    for (let y = yy; y < yy + blockSize; y++) {
-                        for (let x = xx; x < xx + blockSize; x++) {
-                            for (let i = 0; i < 6; i++) {
-                                const block = map.blocks[clamp(x, 0, 255)][clamp(y, 0, 255)][i];
-                                if (!block) {
-                                    continue;
-                                }
-
-                                if (block.flat !== (f === 1)) {
-                                    continue;
-                                }
-
-                                const topNorthWest: Point = [(x) * 64, (y) * 64, (i) * 64];
-                                const topNorthEast: Point = [(x + 1) * 64, (y) * 64, (i) * 64];
-                                const topSouthWest: Point = [(x) * 64, (y + 1) * 64, (i) * 64];
-                                const topSouthEast: Point = [(x + 1) * 64, (y + 1) * 64, (i) * 64];
-                                const bottomNorthWest: Point = [(x) * 64, (y) * 64, (i + 1) * 64];
-                                const bottomNorthEast: Point = [(x + 1) * 64, (y) * 64, (i + 1) * 64];
-                                const bottomSouthWest: Point = [(x) * 64, (y + 1) * 64, (i + 1) * 64];
-                                const bottomSouthEast: Point = [(x + 1) * 64, (y + 1) * 64, (i + 1) * 64];
-
-                                adjustSlope(block.slope, topNorthWest, topNorthEast, topSouthWest, topSouthEast);
-
-                                if (block.lid) {
-                                    const start = modelData.positions.length / 3;
-                                    modelData.positions.push(
-                                        ...topNorthWest,
-                                        ...topNorthEast,
-                                        ...topSouthWest,
-                                        ...topSouthEast);
-                                    const tileIndex = style.sideTiles + block.lid;
-                                    const tileX = (margin + Math.floor(tileIndex % tilesPerRow) * multiplier) / 2048;
-                                    const tileY = (margin + Math.floor(tileIndex / tilesPerRow) * multiplier) / 2048;
-                                    switch (block.lidRotation) {
-                                        case 0:
-                                        default:
-                                            modelData.textureCoords.push(
-                                                tileX, tileY,
-                                                tileX + tileSize, tileY,
-                                                tileX, tileY + tileSize,
-                                                tileX + tileSize, tileY + tileSize);
-                                            break;
-                                        case 1:
-                                            modelData.textureCoords.push(
-                                                tileX, tileY + tileSize,
-                                                tileX, tileY,
-                                                tileX + tileSize, tileY + tileSize,
-                                                tileX + tileSize, tileY);
-                                            break;
-                                        case 2:
-                                            modelData.textureCoords.push(
-                                                tileX + tileSize, tileY + tileSize,
-                                                tileX, tileY + tileSize,
-                                                tileX + tileSize, tileY,
-                                                tileX, tileY);
-                                            break;
-                                        case 3:
-                                            modelData.textureCoords.push(
-                                                tileX + tileSize, tileY,
-                                                tileX + tileSize, tileY + tileSize,
-                                                tileX, tileY,
-                                                tileX, tileY + tileSize);
-                                            break;
-                                    }
-
-                                    modelData.indices.push(start + 0, start + 1, start + 2, start + 3, start + 2, start + 1);
-                                }
-
-                                if (block.bottom) {
-                                    const start = modelData.positions.length / 3;
-                                    if (block.flat) {
-                                        modelData.positions.push(
-                                            ...topNorthWest,
-                                            ...topNorthEast,
-                                            ...bottomNorthWest,
-                                            ...bottomNorthEast);
-                                    } else {
-                                        modelData.positions.push(
-                                            ...topSouthWest,
-                                            ...topSouthEast,
-                                            ...bottomSouthWest,
-                                            ...bottomSouthEast);
-                                    }
-
-                                    const tileIndex = block.bottom;
-                                    const tileX = (margin + Math.floor(tileIndex % tilesPerRow) * multiplier) / 2048;
-                                    const tileY = (margin + Math.floor(tileIndex / tilesPerRow) * multiplier) / 2048;
-                                    if (block.flipTopBottom) {
-                                        modelData.textureCoords.push(
-                                            tileX + tileSize, tileY,
-                                            tileX, tileY,
-                                            tileX + tileSize, tileY + tileSize,
-                                            tileX, tileY + tileSize);
-                                    } else {
-                                        modelData.textureCoords.push(
-                                            tileX, tileY,
-                                            tileX + tileSize, tileY,
-                                            tileX, tileY + tileSize,
-                                            tileX + tileSize, tileY + tileSize);
-                                    }
-
-                                    modelData.indices.push(start + 0, start + 1, start + 2, start + 3, start + 2, start + 1);
-                                }
-
-                                if (block.right) {
-                                    const start = modelData.positions.length / 3;
-                                    if (block.flat) {
-                                        modelData.positions.push(
-                                            ...topSouthWest,
-                                            ...topNorthWest,
-                                            ...bottomSouthWest,
-                                            ...bottomNorthWest);
-                                    } else {
-                                        modelData.positions.push(
-                                            ...topSouthEast,
-                                            ...topNorthEast,
-                                            ...bottomSouthEast,
-                                            ...bottomNorthEast);
-                                    }
-                                    const tileIndex = block.right;
-                                    const tileX = (margin + Math.floor(tileIndex % tilesPerRow) * multiplier) / 2048;
-                                    const tileY = (margin + Math.floor(tileIndex / tilesPerRow) * multiplier) / 2048;
-                                    if (block.flipLeftRight) {
-                                        modelData.textureCoords.push(
-                                            tileX + tileSize, tileY,
-                                            tileX, tileY,
-                                            tileX + tileSize, tileY + tileSize,
-                                            tileX, tileY + tileSize);
-                                    } else {
-                                        modelData.textureCoords.push(
-                                            tileX, tileY,
-                                            tileX + tileSize, tileY,
-                                            tileX, tileY + tileSize,
-                                            tileX + tileSize, tileY + tileSize);
-                                    }
-
-                                    modelData.indices.push(start + 0, start + 1, start + 2, start + 3, start + 2, start + 1);
-                                }
-
-                                if (block.left) {
-                                    const start = modelData.positions.length / 3;
-                                    modelData.positions.push(
-                                        ...topNorthWest,
-                                        ...topSouthWest,
-                                        ...bottomNorthWest,
-                                        ...bottomSouthWest);
-                                    const tileIndex = block.left;
-                                    const tileX = (margin + Math.floor(tileIndex % tilesPerRow) * multiplier) / 2048;
-                                    const tileY = (margin + Math.floor(tileIndex / tilesPerRow) * multiplier) / 2048;
-
-                                    if (block.flipLeftRight) {
-                                        modelData.textureCoords.push(
-                                            tileX + tileSize, tileY,
-                                            tileX, tileY,
-                                            tileX + tileSize, tileY + tileSize,
-                                            tileX, tileY + tileSize);
-                                    } else {
-                                        modelData.textureCoords.push(
-                                            tileX, tileY,
-                                            tileX + tileSize, tileY,
-                                            tileX, tileY + tileSize,
-                                            tileX + tileSize, tileY + tileSize);
-                                    }
-
-                                    modelData.indices.push(start + 0, start + 1, start + 2, start + 3, start + 2, start + 1);
-                                }
-
-                                if (block.top) {
-                                    const start = modelData.positions.length / 3;
-                                    modelData.positions.push(
-                                        ...topNorthEast,
-                                        ...topNorthWest,
-                                        ...bottomNorthEast,
-                                        ...bottomNorthWest);
-                                    const tileIndex = block.top;
-                                    const tileX = (margin + Math.floor(tileIndex % tilesPerRow) * multiplier) / 2048;
-                                    const tileY = (margin + Math.floor(tileIndex / tilesPerRow) * multiplier) / 2048;
-                                    if (block.flipTopBottom) {
-                                        modelData.textureCoords.push(
-                                            tileX + tileSize, tileY,
-                                            tileX, tileY,
-                                            tileX + tileSize, tileY + tileSize,
-                                            tileX, tileY + tileSize);
-                                    } else {
-                                        modelData.textureCoords.push(
-                                            tileX, tileY,
-                                            tileX + tileSize, tileY,
-                                            tileX, tileY + tileSize,
-                                            tileX + tileSize, tileY + tileSize);
-                                    }
-
-                                    modelData.indices.push(start + 0, start + 1, start + 2, start + 3, start + 2, start + 1);
-                                }
-                            }
-                        }
-                    }
-
-                    this.createModel(modelData);
-                }
+        for (let yy = min; yy < max; yy += blockSize) {
+            for (let xx = min; xx < max; xx += blockSize) {
+                this.blocks.push(new CityBlock(this, map, style, blockSize, margin, tilesPerRow, xx, yy, tileSize, multiplier, bigTexture));
             }
         }
     }
@@ -467,14 +259,16 @@ export default class WebGlRenderer implements IRenderer {
         return texture;
     }
 
-    public createModel(modelData: IModelData) {
+    public createModel(modelData: IModelData): Model {
         let texture = this.textureMap.get(modelData.texture);
         if (!texture) {
             texture = this.loadTexture(modelData.texture);
             this.textureMap.set(modelData.texture, texture);
         }
 
-        this.models.push(new Model(this.gl, modelData, texture));
+        const result = new Model(this.gl, modelData, texture);
+        this.models.push(result);
+        return result;
     }
 
     public createTextModel(modelData: IModelData): Model {
@@ -512,6 +306,12 @@ export default class WebGlRenderer implements IRenderer {
 
     public createTextBuffer(x: number, y: number, width: number, height: number, font: Font, options?: ITextBufferOptions): TextBuffer {
         return new TextBuffer(this, font, x, y, width, height, options);
+    }
+
+    public update(time: number) {
+        for (const block of this.blocks) {
+            block.update(time);
+        }
     }
 
     public render(item: unknown): void {
@@ -552,61 +352,11 @@ export default class WebGlRenderer implements IRenderer {
 ////    texture: HTMLCanvasElement | HTMLImageElement;
 ////}
 
-function adjustSlope(slope: number, northWest: Point, northEast: Point, southWest: Point, southEast: Point) {
-    let up: [Point, Point];
-    let down: [Point, Point];
-    if (((slope >= 1) && (slope <= 2)) || ((slope >= 9) && (slope <= 16)) || (slope == 41)) {
-        up = [northEast, northWest];
-        down = [southEast, southWest];
-    } else if (((slope >= 3) && (slope <= 4)) || ((slope >= 17) && (slope <= 24)) || (slope == 42)) {
-        up = [southEast, southWest];
-        down = [northEast, northWest];
-    } else if (((slope >= 5) && (slope <= 6)) || ((slope >= 25) && (slope <= 32)) || (slope == 43)) {
-        up = [northWest, southWest];
-        down = [northEast, southEast];
-    } else if (((slope >= 7) && (slope <= 8)) || ((slope >= 33) && (slope <= 40)) || (slope == 44)) {
-        up = [northEast, southEast];
-        down = [northWest, southWest];
-    } else {
-        return;
-    }
-
-    let parts
-    if ((slope >= 1) && (slope <= 8)) {
-        parts = 2;
-    } else if ((slope >= 9) && (slope <= 40)) {
-        parts = 8;
-    } else if ((slope >= 41) && (slope <= 44)) {
-        parts = 1;
-    } else {
-        return;
-    }
-
-    const level = parts - ((slope - 1) % parts);
-    const upper = (level / parts) * 64;
-    const lower = ((level - 1) / parts) * 64;
-    up[0][2] += lower;
-    up[1][2] += lower;
-    down[0][2] += upper;
-    down[1][2] += upper;
-}
-
-function clamp(value: number, min: number, max: number): number {
-    if (value < min) {
-        return min;
-    }
-
-    if (value > max) {
-        return max;
-    }
-
-    return value;
-}
-
 export interface IRenderer {
     readonly worldEntities: Entity[];
     readonly guiEntities: Entity[];
 
+    update(time: number): void;
     setCamera(position: [number, number, number]): void;
     getViewSize(): [number, number];
     render(model: Model): void;

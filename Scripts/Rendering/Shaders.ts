@@ -33,7 +33,7 @@ void main(void) {
         if (useAlpha) {
             discard;
         } else {
-            texColor = vec4(0.0,0.0,0.0,1.0);
+            texColor = vec4(texColor.rgb,1.0);
         }
     }
 

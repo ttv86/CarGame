@@ -120,6 +120,7 @@ export default class Game {
             entity.update(time);
         }
 
+        this.renderer.update(time);
         this.renderer.setCamera(this.camera);
     }
 
