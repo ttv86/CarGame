@@ -4,6 +4,7 @@ import Entity from "../Entity";
 import Sprite from "../Sprite";
 import { ITextBuffer } from "../Rendering/TextBuffer";
 import Font from "../DataReaders/Font";
+import Game from "../Game";
 
 export default class Pager extends Entity {
     private light: Sprite;
@@ -14,8 +15,8 @@ export default class Pager extends Entity {
     private position: number = 0;
     private hideLimit: number = 0;
 
-    constructor(renderer: IRenderer, style: Style, font: Font) {
-        super(renderer, style, 28, 0, 0, 0);
+    constructor(game: Game, renderer: IRenderer, style: Style, font: Font) {
+        super(game, renderer, style, 28, 0, 0, 0);
         this.light = new Sprite(renderer, style, 29, 22, 38);
         this.textBuffer = renderer.createTextBuffer(22, 14, 116, 18, font, { verticalAlign: "middle", wordWrap: false });
         this.visible = false;

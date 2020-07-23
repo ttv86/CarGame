@@ -77,7 +77,6 @@ async function start() {
         // Wait here city-specific data files.
         const [style, audio2] = await Promise.all([stylePromise/*, audio2Promise*/]);
 
-        const downKeys = new Set<number>();
         const canvas = document.createElement("canvas");
         canvas.style.width = "100vw";
         canvas.style.height = "100vh";
@@ -85,19 +84,19 @@ async function start() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        window.addEventListener("keydown", (ev) => downKeys.add(ev.keyCode));
-        window.addEventListener("keyup", (ev) => downKeys.delete(ev.keyCode));
-
         const renderer = new WebGlRenderer(canvas);
         renderer.buildCityModel(map, style);
         const game = new Game(map, style, texts, renderer, font1, font2, font3, font4, font5);
+
+        window.addEventListener("keydown", (ev) => game.keyDown(ev.keyCode));
+        window.addEventListener("keyup", (ev) => game.keyUp(ev.keyCode));
 
         window.addEventListener("resize", () => { renderer.resized(); game.resized(); });
 
         let prev = 0;
         function step(time: number) {
             // First update game logic. (Move cars, people, bullets, animation, etc...)
-            game.update((time - prev) / 1000, downKeys);
+            game.update((time - prev) / 1000);
 
             // Then render current state.
             renderer.renderScene();

@@ -1,4 +1,4 @@
-import Character from "./WorldEntities/Character";
+import Character, { CharacterState } from "./WorldEntities/Character";
 import { IRenderer } from "./Rendering/WebGlRenderer";
 import Style, { ICarInfo } from "./DataReaders/Style";
 import Entity from "./Entity";
@@ -7,22 +7,23 @@ import Vehicle from "./WorldEntities/Vehicle";
 import Pager from "./GuiWidgets/Pager";
 import LocationInfo from "./GuiWidgets/LocationInfo";
 import Font from "./DataReaders/Font";
-
-// TODO: Key binding:
-const forward = [38, 87];
-const backward = [40, 83];
-const turnRight = [39, 68];
-const turnLeft = [37, 65];
+import KeyboardHandler from "./KeyboardHandler";
 
 export default class Game {
-    private map: GameMap;
-    private style: Style;
-    private texts: Map<string, string>;
-    private renderer: IRenderer;
-    private pager: Pager;
-    private locationInfo: LocationInfo;
     private lastLocation: ISubArea | null = null;
     private areas: ISubArea[] = [];
+    public readonly map: GameMap;
+    public readonly style: Style;
+    public readonly texts: Map<string, string>;
+    public readonly renderer: IRenderer;
+    public readonly keyboard: KeyboardHandler;
+    public readonly pager: Pager;
+    public readonly locationInfo: LocationInfo;
+    public player: Character | null = null;
+    public vehicles: Vehicle[] = [];
+    public camera: [number, number, number] = [105.5 * 64, 119.5 * 64, 1 * 64];
+    public targetScore: number = 0;
+    public secretMissions: number = 0;
 
     constructor(map: GameMap, style: Style, texts: Map<string, string>, renderer: IRenderer, subtitleFont: Font, pointFont: Font, locationFont: Font, lifeFont: Font, pagerFont: Font) {
         document.title = texts.get(`city${map.style - 1}`) ?? document.title;
@@ -30,16 +31,21 @@ export default class Game {
         this.style = style;
         this.renderer = renderer;
         this.texts = texts;
-        this.player = new Character(renderer, style, 105.5, 119.5, 9, 0);
+        this.keyboard = new KeyboardHandler();
+        this.player = new Character(this, renderer, style, 105.5 * 64, 119.5 * 64, 4 * 64, 0);
+        const defaultVehicle = new Vehicle(this, renderer, style, 106.5 * 64, 119.5 * 64, 4 * 64, 0, style.carInfos[0]);
+        this.vehicles.push(defaultVehicle);
+
         this.renderer.worldEntities.push(this.player);
+        this.renderer.worldEntities.push(defaultVehicle);
         //for (let i = 0; i < style.carInfos.length; i++) {
         //    this.addToWorld(this.createVehicle(i, 120 + (i * 2), 128, 10));
         //}
 
-        this.pager = new Pager(renderer, style, pagerFont);
+        this.pager = new Pager(this, renderer, style, pagerFont);
         this.renderer.guiEntities.push(this.pager);
 
-        this.locationInfo = new LocationInfo(renderer, style, locationFont);
+        this.locationInfo = new LocationInfo(this, renderer, style, locationFont);
         this.renderer.guiEntities.push(this.locationInfo);
 
         // Make sure areas are sorted by size.
@@ -69,51 +75,76 @@ export default class Game {
         this.resized();
     }
 
-    public player: Character | null = null;
-    public camera: [number, number, number] = [105.5 * 64, 119.5 * 64, 1 * 64];
-    public targetScore: number = 0;
-    public secretMissions: number = 0;
-
     /**
      * Update game logic.
      * @param time Number of seconds since last update.
      */
-    public update(time: number, downKeys: ReadonlySet<number>) {
+    public update(time: number) {
+        // First send keyboard commands to player.
         if (this.player) {
+            if (this.player.vehicle) {
+                const vehicle = this.player.vehicle;
+                if (this.keyboard.isDown("up")) {
+                    vehicle.do("accelerate", time);
+                } else if (this.keyboard.isDown("down")) {
+                    vehicle.do("decelerate", time);
+                }
 
-            if (forward.some(x => downKeys.has(x))) {
-                this.camera[1] -= time * this.camera[2] * 5;
-                //this.player.do("walk", time);
-            } else if (backward.some(x => downKeys.has(x))) {
-                this.camera[1] += time * this.camera[2] * 5;
-                //this.player.do("retreat", time);
+                if (this.keyboard.isDown("left")) {
+                    vehicle.do("turnLeft", time);
+                } else if (this.keyboard.isDown("right")) {
+                    vehicle.do("turnRight", time);
+                }
+
+                if (this.keyboard.isPressed("enterExit")) {
+                    this.player.leaveVehicle();
+                }
+
+                // Player is supposedly center of a vehicle.
+                this.player.x = vehicle.x;
+                this.player.y = vehicle.y;
+                this.player.z = vehicle.z;
+            } else {
+                if (this.keyboard.isDown("up")) {
+                    this.camera[1] -= time * this.camera[2] * 5;
+                    //this.player.do("walk", time);
+                } else if (this.keyboard.isDown("down")) {
+                    this.camera[1] += time * this.camera[2] * 5;
+                    //this.player.do("retreat", time);
+                }
+
+                if (this.keyboard.isDown("left")) {
+                    this.camera[0] -= time * this.camera[2] * 5;
+                    //this.player.do("turnLeft", time);
+                } else if (this.keyboard.isDown("right")) {
+                    this.camera[0] += time * this.camera[2] * 5;
+                    //this.player.do("turnRight", time);
+                }
+
+                if (this.keyboard.isPressed("enterExit")) {
+                    this.player.enterVehicle(this.vehicles[0]);
+                }
             }
 
-            if (turnLeft.some(x => downKeys.has(x))) {
-                this.camera[0] -= time * this.camera[2] * 5;
-                //this.player.do("turnLeft", time);
-            } else if (turnRight.some(x => downKeys.has(x))) {
-                this.camera[0] += time * this.camera[2] * 5;
-                //this.player.do("turnRight", time);
-            }
-
-            //this.camera = [this.player.x, this.player.y + 20, this.player.z];
+            this.camera = [this.player.x, this.player.y + 20, this.player.z];
         }
 
         let possibleLocations: ISubArea[] = [];
         let location: ISubArea | null = null;
         for (const area of this.areas) {
             if ((this.camera[0] >= area.x1) && (this.camera[0] < area.x2) && (this.camera[1] >= area.y1) && (this.camera[1] < area.y2)) {
-                //location = area;
-                possibleLocations.push(area);
-                //break;
+                location = area;
+                break;
             }
         }
 
-        location = possibleLocations[0] ?? null;
         if (location && (location !== this.lastLocation)) {
             this.lastLocation = location;
             this.locationInfo.showText(location.name);
+        }
+
+        for (const entity of this.renderer.worldEntities) {
+            entity.update(time);
         }
 
         for (const entity of this.renderer.guiEntities) {
@@ -122,6 +153,7 @@ export default class Game {
 
         this.renderer.update(time);
         this.renderer.setCamera(this.camera);
+        this.keyboard.update(); // Mark all keypresses as handled.
     }
 
     public createVehicle(vehicleType: number, x: number, y: number, z: number): Vehicle {
@@ -174,6 +206,14 @@ export default class Game {
     public resized(): void {
         const [ width, height ] = this.renderer.getViewSize();
         this.locationInfo.x = (width / 2) - this.locationInfo.width;
+    }
+
+    public keyDown(code: number) {
+        this.keyboard.setKeyStatus(code, true);
+    }
+
+    public keyUp(code: number) {
+        this.keyboard.setKeyStatus(code, false);
     }
 }
 

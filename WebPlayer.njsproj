@@ -64,6 +64,9 @@
     <TypeScriptCompile Include="Scripts\GuiWidgets\LocationInfo.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
+    <TypeScriptCompile Include="Scripts\KeyboardHandler.ts">
+      <SubType>Code</SubType>
+    </TypeScriptCompile>
     <TypeScriptCompile Include="Scripts\Rendering\CityBlock.ts" />
     <TypeScriptCompile Include="Scripts\Rendering\Model.ts">
       <SubType>Code</SubType>

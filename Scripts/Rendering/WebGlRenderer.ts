@@ -94,7 +94,7 @@ export default class WebGlRenderer implements IRenderer {
         for (const entity of this.worldEntities) {
             if (entity.visible) {
                 mat4.identity(view);
-                mat4.translate(view, view, [entity.x * 64 - this.x, this.y - entity.y * 64, -255]);
+                mat4.translate(view, view, [entity.x - this.x, this.y - entity.y, 1 - entity.z]);
                 mat4.rotateZ(view, view, entity.rotation);
                 mat4.translate(view, view, [-entity.width / 2, entity.height / 2, 0]);
 
