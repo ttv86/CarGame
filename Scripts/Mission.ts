@@ -1,10 +1,12 @@
 import Vehicle from "./WorldEntities/Vehicle";
 import Game from "./Game";
+import { IMission } from "./DataReaders/MissionReader";
+import Character from "./WorldEntities/Character";
 
-type InitLineFunction = (line: number, hasOne: boolean, coordinates: ICoordinates, ...params: number[]) => unknown;
+type InitLineFunction = (line: number, hasOne: boolean, coordinates: ICoordinates, param1?: number, param2?: number, param3?: number, param4?: number, param5?: number) => unknown;
 export default class Mission {
     private game: Game;
-
+    private missionData: IMission;
     private initMap: Record<string, InitLineFunction> = {
         "ALT_DAMAGE_TRIG": this.initAltDamageTrig as InitLineFunction,
         "BARRIER": this.initBarrier as InitLineFunction,
@@ -61,7 +63,6 @@ export default class Mission {
         "TELEPHONE": this.initTelephone as InitLineFunction,
         "TRIGGER": this.initTrigger as InitLineFunction,
     };
-
     private commandMap: Record<string, (line: number, ...params: number[]) => unknown> = {
         "ADD_A_LIFE": this.commandAddALife,
         "ANSWER": this.commandAnswer,
@@ -194,21 +195,37 @@ export default class Mission {
         "WAIT_FOR_PLAYERS": this.commandWaitForPlayers,
         "WRECK_A_TRAIN": this.commandWreckATrain,
     };
-
     private initReferences = new Map<number, unknown>();
     private commandReferences = new Map<number, unknown>();
 
-    constructor(game: Game) {
+    constructor(game: Game, missionData: IMission) {
         this.game = game;
+        this.missionData = missionData;
     }
 
-    public runInitLine(commandName: string, lineReference: number, hasOne: boolean, coordinates: ICoordinates, ...parameters: number[]) {
-        const func = this.initMap[commandName];
-        if (func) {
-            const result = func(lineReference, hasOne, coordinates, ...parameters);
-            if ((result !== void 0) && (result !== null)) {
-                this.initReferences.set(lineReference, result);
+    public initializeGame() {
+        for (const line of this.missionData.initLines) {
+
+            const func = this.initMap[line.commandName];
+            if (func) {
+                console.log(`Init ${line.commandName} (${line.coordinateX}, ${line.coordinateY}, ${line.coordinateZ})`);
+                const result = func.call(this, line.lineNumber, line.reset, { x: line.coordinateX, y: line.coordinateY, z: line.coordinateZ }, line.param1, line.param2, line.param3, line.param4, line.param5);
+                if ((result !== void 0) && (result !== null)) {
+                    this.initReferences.set(line.lineNumber, result);
+                }
+
             }
+            /*switch (line.commandName) {
+                case "PLAYER":
+                    this.player = new Character(this, renderer, style, (line.coordinateX + .5) * 64, (line.coordinateY + .5) * 64, (line.coordinateZ) * 64, 0);
+                    this.renderer.worldEntities.push(this.player);
+                    break;
+                case "PARKED":
+                    const vehicle = new Vehicle(this, renderer, style, (line.coordinateX + .5) * 64, (line.coordinateY + .5) * 64, (line.coordinateZ) * 64, 0, style.carInfos[0]);
+                    this.renderer.worldEntities.push(vehicle);
+                    this.vehicles.push(vehicle);
+                    break;
+            }*/
         }
     }
 
@@ -673,7 +690,7 @@ export default class Mission {
      * @param angle Angle of the parked car.
      */
     private initParked(line: number, hasOne: boolean, coordinates: ICoordinates, carType: number, angle: number): Vehicle | null {
-        return this.initParkedPixels(line, hasOne, { x: coordinates.x * 64 + 32, y: coordinates.y * 64 + 32, z: coordinates.z * 64 + 32 }, carType, angle);
+        return this.initParkedPixels(line, hasOne, { x: coordinates.x * 64 + 32, y: coordinates.y * 64 + 32, z: coordinates.z * 64 }, carType, angle);
     }
 
     /**
@@ -685,12 +702,15 @@ export default class Mission {
      * @param angle Angle of the parked car.
      */
     private initParkedPixels(line: number, hasOne: boolean, coordinates: ICoordinates, carType: number, angle: number): Vehicle | null {
-        //const info = this.game.getVehicleInfo(carType);
-        //if (info) {
+        const info = this.game.style.carInfos[carType]; //.getVehicleInfo(carType);
+        if (info) {
+            const vehicle = new Vehicle(this.game, this.game.renderer, this.game.style, coordinates.x, coordinates.y, coordinates.z, 0, info);
+            this.game.renderer.worldEntities.push(vehicle);
+            this.game.vehicles.push(vehicle);
         //    const vehicle = new Vehicle(coordinates.x / 64, coordinates.y / 64, coordinates.z / 64, angle, info);
         //    this.game.addToWorld(vehicle);
-        //    return vehicle;
-        //}
+            return vehicle;
+        }
 
         return null;
     }
@@ -740,6 +760,8 @@ export default class Mission {
      * @param param2 Unknown parameter. Could be angle. Possible values: 256, 512, 768, 0
      */
     private initPlayer(line: number, hasOne: boolean, coordinates: ICoordinates, param1: number, param2: number): void {
+        this.game.player = new Character(this.game, this.game.renderer, this.game.style, (coordinates.x + .5) * 64, (coordinates.y + .5) * 64, (coordinates.z) * 64, 0);
+        this.game.renderer.worldEntities.push(this.game.player);
     }
 
     /**
@@ -2332,7 +2354,7 @@ export default class Mission {
      * Waits for a given amount of ticks.
      * @param line Line number of command.
      * @param param1 Unknown parameter. Possible values: 0, 100
-     * @param nextCommand Next command line. -1 to stop processing. 0 to jump nect line.
+     * @param nextCommand Next command line. -1 to stop processing. 0 to jump next line.
      * @param param3 Unknown parameter. Possible values: 30, 0, 892, 1200, -1, 8010, 280, 50, 4320, 5004, 10, 9500, 600, 900
      * @param time Ticks to wait.
      * @param money Get money when wait expires.

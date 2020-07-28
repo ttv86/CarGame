@@ -73,7 +73,7 @@ export default class WebGlRenderer implements IRenderer {
 
     public renderScene() {
         const projection = mat4.perspective(mat4.create(), 0.84, this.width / this.height, 0.1, 6400);
-        const world = mat4.lookAt(mat4.create(), [0, 0, -this.altitude], [0, 0, 0], [0, -1, 0]);
+        const world = mat4.lookAt(mat4.create(), [0, 0, -this.altitude], [0, 0, 1000], [0, -1, 0]);
         this.gl.uniformMatrix4fv(this.projectionMatrixLocation, false, projection);
         this.gl.uniformMatrix4fv(this.worldMatrixLocation, false, world);
 

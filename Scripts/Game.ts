@@ -8,12 +8,15 @@ import Pager from "./GuiWidgets/Pager";
 import LocationInfo from "./GuiWidgets/LocationInfo";
 import Font from "./DataReaders/Font";
 import KeyboardHandler from "./KeyboardHandler";
+import { IMission } from "./DataReaders/MissionReader";
+import Mission from "./Mission";
 
 export default class Game {
     private lastLocation: ISubArea | null = null;
     private areas: ISubArea[] = [];
     public readonly map: GameMap;
     public readonly style: Style;
+    public readonly mission: Mission;
     public readonly texts: Map<string, string>;
     public readonly renderer: IRenderer;
     public readonly keyboard: KeyboardHandler;
@@ -25,19 +28,17 @@ export default class Game {
     public targetScore: number = 0;
     public secretMissions: number = 0;
 
-    constructor(map: GameMap, style: Style, texts: Map<string, string>, renderer: IRenderer, subtitleFont: Font, pointFont: Font, locationFont: Font, lifeFont: Font, pagerFont: Font) {
+    constructor(map: GameMap, style: Style, mission: IMission, texts: Map<string, string>, renderer: IRenderer, subtitleFont: Font, pointFont: Font, locationFont: Font, lifeFont: Font, pagerFont: Font) {
         document.title = texts.get(`city${map.style - 1}`) ?? document.title;
         this.map = map;
         this.style = style;
         this.renderer = renderer;
         this.texts = texts;
+        this.mission = new Mission(this, mission);
         this.keyboard = new KeyboardHandler();
-        this.player = new Character(this, renderer, style, 105.5 * 64, 119.5 * 64, 4 * 64, 0);
-        const defaultVehicle = new Vehicle(this, renderer, style, 106.5 * 64, 119.5 * 64, 4 * 64, 0, style.carInfos[0]);
-        this.vehicles.push(defaultVehicle);
 
-        this.renderer.worldEntities.push(this.player);
-        this.renderer.worldEntities.push(defaultVehicle);
+        this.mission.initializeGame();
+
         //for (let i = 0; i < style.carInfos.length; i++) {
         //    this.addToWorld(this.createVehicle(i, 120 + (i * 2), 128, 10));
         //}
@@ -52,22 +53,24 @@ export default class Game {
         map.areas.sort((a1, a2) => (a1.height * a1.width) - (a2.height * a2.width));
 
         // Calculate area boundaries, so we don't need to do this in render loop.
+        const areaStart = `${map.style.toString().padStart(3, '0')}area`;
         for (const area of map.areas) {
             const w = area.width / 3;
             const h = area.height / 3;
+            const areaNameKey = areaStart + area.voiceId.toString().padStart(3, "0");
             this.areas.push(
-                { x1: (area.x + (0 * w)) * 64, y1: (area.y + (0 * h)) * 64, x2: (area.x + (1 * w)) * 64, y2: (area.y + (1 * h)) * 64, name: `${texts.get(`nw`)} ${texts.get(`001area${area.voiceId.toString().padStart(3, "0")}`)}`, voice1: null, voice2: area.voiceId },
-                { x1: (area.x + (1 * w)) * 64, y1: (area.y + (0 * h)) * 64, x2: (area.x + (2 * w)) * 64, y2: (area.y + (1 * h)) * 64, name: `${texts.get(`n`)} ${texts.get(`001area${area.voiceId.toString().padStart(3, "0")}`)}`, voice1: null, voice2: area.voiceId },
-                { x1: (area.x + (2 * w)) * 64, y1: (area.y + (0 * h)) * 64, x2: (area.x + (3 * w)) * 64, y2: (area.y + (1 * h)) * 64, name: `${texts.get(`ne`)} ${texts.get(`001area${area.voiceId.toString().padStart(3, "0")}`)}`, voice1: null, voice2: area.voiceId },
+                { x1: (area.x + (0 * w)) * 64, y1: (area.y + (0 * h)) * 64, x2: (area.x + (1 * w)) * 64, y2: (area.y + (1 * h)) * 64, name: `${texts.get(`nw`)} ${texts.get(areaNameKey)}`, voice1: null, voice2: area.voiceId },
+                { x1: (area.x + (1 * w)) * 64, y1: (area.y + (0 * h)) * 64, x2: (area.x + (2 * w)) * 64, y2: (area.y + (1 * h)) * 64, name: `${texts.get(`n`)} ${texts.get(areaNameKey)}`, voice1: null, voice2: area.voiceId },
+                { x1: (area.x + (2 * w)) * 64, y1: (area.y + (0 * h)) * 64, x2: (area.x + (3 * w)) * 64, y2: (area.y + (1 * h)) * 64, name: `${texts.get(`ne`)} ${texts.get(areaNameKey)}`, voice1: null, voice2: area.voiceId },
 
-                { x1: (area.x + (0 * w)) * 64, y1: (area.y + (1 * h)) * 64, x2: (area.x + (1 * w)) * 64, y2: (area.y + (2 * h)) * 64, name: `${texts.get(`w`)} ${texts.get(`001area${area.voiceId.toString().padStart(3, "0")}`)}`, voice1: null, voice2: area.voiceId },
-                { x1: (area.x + (1 * w)) * 64, y1: (area.y + (1 * h)) * 64, x2: (area.x + (2 * w)) * 64, y2: (area.y + (2 * h)) * 64, name: `${texts.get(`001area${area.voiceId.toString().padStart(3, "0")}`)}`, voice1: null, voice2: area.voiceId },
-                { x1: (area.x + (2 * w)) * 64, y1: (area.y + (1 * h)) * 64, x2: (area.x + (3 * w)) * 64, y2: (area.y + (2 * h)) * 64, name: `${texts.get(`e`)} ${texts.get(`001area${area.voiceId.toString().padStart(3, "0")}`)}`, voice1: null, voice2: area.voiceId },
+                { x1: (area.x + (0 * w)) * 64, y1: (area.y + (1 * h)) * 64, x2: (area.x + (1 * w)) * 64, y2: (area.y + (2 * h)) * 64, name: `${texts.get(`w`)} ${texts.get(areaNameKey)}`, voice1: null, voice2: area.voiceId },
+                { x1: (area.x + (1 * w)) * 64, y1: (area.y + (1 * h)) * 64, x2: (area.x + (2 * w)) * 64, y2: (area.y + (2 * h)) * 64, name: `${texts.get(areaNameKey)}`, voice1: null, voice2: area.voiceId },
+                { x1: (area.x + (2 * w)) * 64, y1: (area.y + (1 * h)) * 64, x2: (area.x + (3 * w)) * 64, y2: (area.y + (2 * h)) * 64, name: `${texts.get(`e`)} ${texts.get(areaNameKey)}`, voice1: null, voice2: area.voiceId },
 
-                { x1: (area.x + (0 * w)) * 64, y1: (area.y + (2 * h)) * 64, x2: (area.x + (1 * w)) * 64, y2: (area.y + (3 * h)) * 64, name: `${texts.get(`sw`)} ${texts.get(`001area${area.voiceId.toString().padStart(3, "0")}`)}`, voice1: null, voice2: area.voiceId },
-                { x1: (area.x + (1 * w)) * 64, y1: (area.y + (2 * h)) * 64, x2: (area.x + (2 * w)) * 64, y2: (area.y + (3 * h)) * 64, name: `${texts.get(`s`)} ${texts.get(`001area${area.voiceId.toString().padStart(3, "0")}`)}`, voice1: null, voice2: area.voiceId },
-                { x1: (area.x + (2 * w)) * 64, y1: (area.y + (2 * h)) * 64, x2: (area.x + (3 * w)) * 64, y2: (area.y + (3 * h)) * 64, name: `${texts.get(`se`)} ${texts.get(`001area${area.voiceId.toString().padStart(3, "0")}`)}`, voice1: null, voice2: area.voiceId },
-                //{ x1: (area.x + (0 * w)) * 64, y1: (area.y + (0 * h)) * 64, x2: (area.x + (3 * w)) * 64, y2: (area.y + (3 * h)) * 64, name: `${texts.get(`001area${area.voiceId.toString().padStart(3, "0")}`)}`, voice1: null, voice2: area.voiceId },
+                { x1: (area.x + (0 * w)) * 64, y1: (area.y + (2 * h)) * 64, x2: (area.x + (1 * w)) * 64, y2: (area.y + (3 * h)) * 64, name: `${texts.get(`sw`)} ${texts.get(areaNameKey)}`, voice1: null, voice2: area.voiceId },
+                { x1: (area.x + (1 * w)) * 64, y1: (area.y + (2 * h)) * 64, x2: (area.x + (2 * w)) * 64, y2: (area.y + (3 * h)) * 64, name: `${texts.get(`s`)} ${texts.get(areaNameKey)}`, voice1: null, voice2: area.voiceId },
+                { x1: (area.x + (2 * w)) * 64, y1: (area.y + (2 * h)) * 64, x2: (area.x + (3 * w)) * 64, y2: (area.y + (3 * h)) * 64, name: `${texts.get(`se`)} ${texts.get(areaNameKey)}`, voice1: null, voice2: area.voiceId },
+                //{ x1: (area.x + (0 * w)) * 64, y1: (area.y + (0 * h)) * 64, x2: (area.x + (3 * w)) * 64, y2: (area.y + (3 * h)) * 64, name: `${texts.get(areaNameKey)}`, voice1: null, voice2: area.voiceId },
             );
         }
 
@@ -122,11 +125,23 @@ export default class Game {
                 }
 
                 if (this.keyboard.isPressed("enterExit")) {
-                    this.player.enterVehicle(this.vehicles[0]);
+                    let nearestVehicle: Vehicle | null = null;
+                    let nearestDistance: number = 96; // We can jump to car from 1,5 tiles away
+                    for (const vehicle of this.vehicles) {
+                        const dist = Math.sqrt(Math.pow(vehicle.x - this.player.x, 2) + Math.pow(vehicle.y - this.player.y, 2) + Math.pow(vehicle.z - this.player.z, 2));
+                        if (dist < nearestDistance) {
+                            nearestVehicle = vehicle;
+                            nearestDistance = dist;
+                        }
+                    }
+
+                    if (nearestVehicle) {
+                        this.player.enterVehicle(nearestVehicle);
+                    }
                 }
             }
 
-            this.camera = [this.player.x, this.player.y + 20, this.player.z];
+            this.camera = [this.player.x, this.player.y + 20, this.player.z - 192 + Math.abs(this.player.vehicle?.currentSpeed ?? 0) * 32];
         }
 
         let possibleLocations: ISubArea[] = [];

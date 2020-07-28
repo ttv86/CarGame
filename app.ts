@@ -1,6 +1,6 @@
 import { app, BrowserWindow, Menu, globalShortcut, ipcMain } from "electron";
 import { createServer, IncomingMessage, ServerResponse } from "http";
-import { createReadStream, existsSync, readFileSync, readFile } from "fs";
+import { createReadStream, existsSync, readFileSync, readFile, statSync } from "fs";
 import { extname, join } from "path";
 
 // Set this to where original game is installed.
@@ -44,6 +44,11 @@ if (app) {
             if (gameDataDir && (filename.indexOf("..") === -1)) {
                 const file = join(gameDataDir, filename);
                 if (existsSync(file)) {
+                    if (!statSync(file).isFile()) {
+                        event.sender.send("got-file", null);
+                        return;
+                    }
+
                     readFile(file, (err, data) => {
                         if (data) {
                             const result = new DataView(data);
@@ -92,6 +97,12 @@ if (app) {
         let mimeType = mimes[fileExt] ?? "application/octet-stream";
         const fullPath = join(dir, url);
         if (!existsSync(fullPath)) {
+            res.writeHead(404);
+            res.end();
+            return;
+        }
+
+        if (!statSync(fullPath).isFile()) {
             res.writeHead(404);
             res.end();
             return;

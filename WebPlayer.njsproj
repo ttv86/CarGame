@@ -5,7 +5,8 @@
     <Name>ElectronPlayer</Name>
     <RootNamespace>ElectronPlayer</RootNamespace>
     <SaveNodeJsSettingsInProjectFile>True</SaveNodeJsSettingsInProjectFile>
-    <NodeExePath>node_modules\electron\dist\electron.exe</NodeExePath>
+    <NodeExePath>
+    </NodeExePath>
     <NodeExeArguments>
     </NodeExeArguments>
   </PropertyGroup>
@@ -59,6 +60,9 @@
       <SubType>Code</SubType>
     </TypeScriptCompile>
     <TypeScriptCompile Include="Scripts\DataReaders\BinaryReader.ts">
+      <SubType>Code</SubType>
+    </TypeScriptCompile>
+    <TypeScriptCompile Include="Scripts\DataReaders\MissionReader.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
     <TypeScriptCompile Include="Scripts\GuiWidgets\LocationInfo.ts">
