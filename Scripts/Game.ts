@@ -10,10 +10,16 @@ import Font from "./DataReaders/Font";
 import KeyboardHandler from "./KeyboardHandler";
 import { IMission } from "./DataReaders/MissionReader";
 import Mission from "./Mission";
+import Trigger from "./WorldEntities/Trigger";
+import SubtitleBox from "./GuiWidgets/SubtitleBox";
+import Audio from "./DataReaders/Audio";
 
 export default class Game {
+    private readonly subtitles: SubtitleBox;
+    private readonly globalAudio: Audio;
+    private readonly localAudio: Audio;
+    private readonly areas: ISubArea[] = [];
     private lastLocation: ISubArea | null = null;
-    private areas: ISubArea[] = [];
     public readonly map: GameMap;
     public readonly style: Style;
     public readonly mission: Mission;
@@ -22,13 +28,28 @@ export default class Game {
     public readonly keyboard: KeyboardHandler;
     public readonly pager: Pager;
     public readonly locationInfo: LocationInfo;
+    public readonly triggers: Trigger[] = [];
     public player: Character | null = null;
     public vehicles: Vehicle[] = [];
     public camera: [number, number, number] = [105.5 * 64, 119.5 * 64, 1 * 64];
     public targetScore: number = 0;
     public secretMissions: number = 0;
+    public score: number = 0;
 
-    constructor(map: GameMap, style: Style, mission: IMission, texts: Map<string, string>, renderer: IRenderer, subtitleFont: Font, pointFont: Font, locationFont: Font, lifeFont: Font, pagerFont: Font) {
+    constructor(
+        map: GameMap,
+        style: Style,
+        mission: IMission,
+        texts: Map<string, string>,
+        renderer: IRenderer,
+        subtitleFont: Font,
+        pointFont: Font,
+        locationFont: Font,
+        lifeFont: Font,
+        pagerFont: Font,
+        globalAudio: Audio,
+        localAudio: Audio) {
+
         document.title = texts.get(`city${map.style - 1}`) ?? document.title;
         this.map = map;
         this.style = style;
@@ -36,18 +57,20 @@ export default class Game {
         this.texts = texts;
         this.mission = new Mission(this, mission);
         this.keyboard = new KeyboardHandler();
+        this.globalAudio = globalAudio;
+        this.localAudio = localAudio;
 
+        // Run world initialization logic.
         this.mission.initializeGame();
-
-        //for (let i = 0; i < style.carInfos.length; i++) {
-        //    this.addToWorld(this.createVehicle(i, 120 + (i * 2), 128, 10));
-        //}
 
         this.pager = new Pager(this, renderer, style, pagerFont);
         this.renderer.guiEntities.push(this.pager);
 
         this.locationInfo = new LocationInfo(this, renderer, style, locationFont);
         this.renderer.guiEntities.push(this.locationInfo);
+
+        this.subtitles = new SubtitleBox(this, this.renderer, style, subtitleFont);
+        this.renderer.guiEntities.push(this.subtitles);
 
         // Make sure areas are sorted by size.
         map.areas.sort((a1, a2) => (a1.height * a1.width) - (a2.height * a2.width));
@@ -84,7 +107,15 @@ export default class Game {
      */
     public update(time: number) {
         // First send keyboard commands to player.
+        this.mission.update();
         if (this.player) {
+
+            for (const trigger of this.triggers) {
+                if (trigger.test(this.player.x, this.player.y, this.player.z)) {
+                    trigger.execute();
+                }
+            }
+
             if (this.player.vehicle) {
                 const vehicle = this.player.vehicle;
                 if (this.keyboard.isDown("up")) {
@@ -221,6 +252,7 @@ export default class Game {
     public resized(): void {
         const [ width, height ] = this.renderer.getViewSize();
         this.locationInfo.x = (width / 2) - this.locationInfo.width;
+        this.subtitles.setLocation(width, height);
     }
 
     public keyDown(code: number) {
@@ -229,6 +261,68 @@ export default class Game {
 
     public keyUp(code: number) {
         this.keyboard.setKeyStatus(code, false);
+    }
+
+    public playSound(name: string): void {
+        // NOTE: Audio might not play until user has interacted with content. This should be resolved after main menu is implemented.
+        switch (name) {
+            case "intro":
+                this.globalAudio.play(0);
+                break;
+            case "missionComplete":
+                this.globalAudio.play(1);
+                break;
+            case "missionFailed":
+                this.globalAudio.play(2);
+                break;
+            case "killFrenzy":
+                this.globalAudio.play(3);
+                break;
+            case "excellent":
+                this.globalAudio.play(4);
+                break;
+            case "betterLuck":
+                this.globalAudio.play(5);
+                break;
+            case "loser":
+                this.globalAudio.play(6);
+                break;
+            case "wow":
+                this.globalAudio.play(7);
+                break;
+            case "laugh1":
+                this.globalAudio.play(8);
+                break;
+            case "laugh2":
+                this.globalAudio.play(9);
+                break;
+            case "laugh3":
+                this.globalAudio.play(10);
+                break;
+            case "extraLife":
+                this.globalAudio.play(11);
+                break;
+            case "sad":
+                this.globalAudio.play(12);
+                break;
+            case "go":
+                this.globalAudio.play(14);
+                break;
+            case "gogogo":
+                this.globalAudio.play(15);
+                break;
+            case "moveIt":
+                this.globalAudio.play(16);
+                break;
+            case "applause":
+                this.globalAudio.play(17);
+                break;
+        }
+    }
+
+    public showText(textReference: number, type: "mouth" | "phone" | "mobile"): void {
+        // TODO: Not implemented.
+        this.subtitles.setText(this.texts.get(textReference.toString()) ?? "N/A");
     }
 }
 

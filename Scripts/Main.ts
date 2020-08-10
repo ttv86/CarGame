@@ -95,7 +95,7 @@ async function start() {
 
         const renderer = new WebGlRenderer(canvas);
         renderer.buildCityModel(map, style);
-        const game = new Game(map, style, mission, texts, renderer, font1, font2, font3, font4, font5);
+        const game = new Game(map, style, mission, texts, renderer, font1, font2, font3, font4, font5, audio1, audio2);
 
         window.addEventListener("keydown", (ev) => game.keyDown(ev.keyCode));
         window.addEventListener("keyup", (ev) => game.keyUp(ev.keyCode));

@@ -8,7 +8,6 @@ export default class Audio {
         this.ctx = new AudioContext();
         const soundCount = Math.floor(index.byteLength / 12);
         const reader = new BinaryReader(index);
-        const first = data.getUint8(0);
         for (let i = 0; i < soundCount; i++) {
             const start = reader.readInt32();
             const length = reader.readInt32() / (is16Byte ? 2 : 1);
@@ -25,10 +24,16 @@ export default class Audio {
         }
     }
 
+    public get length(): number {
+        return this.sounds.length;
+    }
+
     public play(audioIndex: number) {
-        const source = this.ctx.createBufferSource();
-        source.buffer = this.sounds[audioIndex];
-        source.connect(this.ctx.destination);
-        source.start();
+        if ((audioIndex >= 0) && (audioIndex < this.sounds.length)) {
+            const source = this.ctx.createBufferSource();
+            source.buffer = this.sounds[audioIndex];
+            source.connect(this.ctx.destination);
+            source.start();
+        }
     }
 }

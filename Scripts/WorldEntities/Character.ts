@@ -10,11 +10,9 @@ const turnSpeed = 1; // 1 radian (~57.3deg) per second.
 /** People in game world. Player, police, pedestrians, etc... */
 export default class Character extends Entity {
     constructor(game: Game, renderer: IRenderer, style: Style, x: number, y: number, z: number, facing: number) {
-        super(game, renderer, style, 645, x, y, z);
-        this.facing = facing;
+        super(game, renderer, style, 743, x, y, z);
+        this.rotation = facing;
     }
-
-    public facing: number;
 
     public state: CharacterState = CharacterState.OnFoot;
 

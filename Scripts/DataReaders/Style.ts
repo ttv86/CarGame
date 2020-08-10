@@ -336,7 +336,7 @@ export default class Style {
             throw new Error("Failed to get canvas rendering context while generating tiles.");
         }
 
-        // Uncomment this to get purple opaque background for sprites. Good for debugging.
+        //// Uncomment this to get purple opaque background for sprites. Good for debugging.
         //context.fillStyle = "rgb(255,0,255)";
         //context.fillRect(0, 0, 2048, 2048);
 

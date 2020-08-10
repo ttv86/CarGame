@@ -68,6 +68,9 @@
     <TypeScriptCompile Include="Scripts\GuiWidgets\LocationInfo.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
+    <TypeScriptCompile Include="Scripts\GuiWidgets\SubtitleBox.ts">
+      <SubType>Code</SubType>
+    </TypeScriptCompile>
     <TypeScriptCompile Include="Scripts\KeyboardHandler.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
@@ -110,6 +113,9 @@
       <SubType>Code</SubType>
     </TypeScriptCompile>
     <TypeScriptCompile Include="Scripts\DataReaders\TextDecryptor.ts">
+      <SubType>Code</SubType>
+    </TypeScriptCompile>
+    <TypeScriptCompile Include="Scripts\WorldEntities\Trigger.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
     <TypeScriptCompile Include="Scripts\WorldEntities\Vehicle.ts">

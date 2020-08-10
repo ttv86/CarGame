@@ -86,11 +86,11 @@ export default function readMissions(data: DataView): ReadonlyMap<number, IMissi
                             missionBuilder.commandLines.push({
                                 lineNumber: parseInt(match[1]),
                                 commandName: match[2],
-                                param1: match[3] ? parseInt(match[3]) : void 0,
-                                param2: match[4] ? parseInt(match[4]) : void 0,
-                                param3: match[5] ? parseInt(match[5]) : void 0,
-                                param4: match[6] ? parseInt(match[6]) : void 0,
-                                param5: match[7] ? parseInt(match[7]) : void 0,
+                                param1: match[3] ? parseInt(match[3]) : 0,
+                                param2: match[4] ? parseInt(match[4]) : 0,
+                                param3: match[5] ? parseInt(match[5]) : 0,
+                                param4: match[6] ? parseInt(match[6]) : 0,
+                                param5: match[7] ? parseInt(match[7]) : 0,
                             });
                         } else if (/\S/.test(lineBuilder)) {
                             console.warn("Invalid mission statement: ", lineBuilder);
@@ -159,11 +159,11 @@ export interface IInitLine {
 }
 
 export interface ICommandLine {
-    readonly lineNumber: number;
+    readonly lineNumber?: number;
     readonly commandName: string;
-    readonly param1?: number;
-    readonly param2?: number;
-    readonly param3?: number;
-    readonly param4?: number;
-    readonly param5?: number;
+    readonly param1: number;
+    readonly param2: number;
+    readonly param3: number;
+    readonly param4: number;
+    readonly param5: number;
 }
