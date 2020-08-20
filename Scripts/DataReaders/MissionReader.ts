@@ -145,7 +145,7 @@ export interface IMission {
 }
 
 export interface IInitLine {
-    readonly lineNumber: number;
+    readonly lineNumber: number | null;
     readonly reset: boolean;
     readonly coordinateX: number;
     readonly coordinateY: number;
@@ -159,7 +159,7 @@ export interface IInitLine {
 }
 
 export interface ICommandLine {
-    readonly lineNumber?: number;
+    readonly lineNumber: number | null;
     readonly commandName: string;
     readonly param1: number;
     readonly param2: number;

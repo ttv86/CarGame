@@ -65,7 +65,9 @@ export default class Model {
     public center: { x: number, y: number } = { x: 0, y: 0 };
 
     public draw(gl: WebGLRenderingContext, vertexPositionAttribute: number, vertexTextureAttribute: number, transparentUniformLocation: WebGLUniformLocation | null): void {
-        gl.uniform1i(transparentUniformLocation, this.transparent ? 1 : 0);
+        if (transparentUniformLocation) {
+            gl.uniform1i(transparentUniformLocation, this.transparent ? 1 : 0);
+        }
 
         gl.bindTexture(WebGLRenderingContext.TEXTURE_2D, this.texture);
 
@@ -86,5 +88,5 @@ export interface IModelData {
     textureCoords: readonly number[];
     indices: readonly number[];
     transparent?: boolean;
-    texture: HTMLCanvasElement | HTMLImageElement;
+    texture: HTMLCanvasElement | HTMLImageElement | ImageData;
 }

@@ -6,27 +6,14 @@ import Entity from "../Entity";
 import Model, { IModelData } from "./Model";
 import TextBuffer, { ITextBuffer } from "./TextBuffer";
 import { HorizontalAlign, VerticalAlign, Point } from "../Types";
-import * as Shaders from "./Shaders";
 import Sprite from "../Sprite";
 import CityBlock from "./CityBlock";
+import WebGlBaseRenderer, { IBaseRenderer } from "./WebGlBaseRenderer";
 
 const blockSize = 16;
-export default class WebGlRenderer implements IRenderer {
-    private canvas: HTMLCanvasElement;
-    private gl: WebGL2RenderingContext;
-    private program: WebGLProgram;
+export default class WebGlRenderer extends WebGlBaseRenderer implements IRenderer {
     private models: Model[] = [];
-    private samplerLocation: WebGLUniformLocation | null;
-    private projectionMatrixLocation: WebGLUniformLocation | null;
-    private worldMatrixLocation: WebGLUniformLocation | null;
-    private viewMatrixLocation: WebGLUniformLocation | null;
-    private useAlphaLocation: WebGLUniformLocation | null;
-    private vertexPositionLocation: number;
-    private textureCoordLocation: number;
-    private textureMap = new Map<HTMLCanvasElement | HTMLImageElement, WebGLTexture>();
     private blocks: CityBlock[] = [];
-    private width = 320;
-    private height = 240;
 
     public x: number = 0;
     public y: number = 0;
@@ -35,40 +22,7 @@ export default class WebGlRenderer implements IRenderer {
     public readonly guiEntities: Entity[] = [];
 
     constructor(canvas: HTMLCanvasElement) {
-        const gl = canvas.getContext("webgl2");
-        if (!gl) {
-            throw new Error("Failed to get context");
-        }
-
-        this.gl = gl;
-        this.canvas = canvas;
-        this.program = this.createProgram();
-
-        this.samplerLocation = this.gl.getUniformLocation(this.program, "sampler");
-        this.projectionMatrixLocation = this.gl.getUniformLocation(this.program, "projectionMatrix");
-        this.worldMatrixLocation = this.gl.getUniformLocation(this.program, "worldMatrix");
-        this.viewMatrixLocation = this.gl.getUniformLocation(this.program, "viewMatrix");
-        this.useAlphaLocation = this.gl.getUniformLocation(this.program, "useAlpha");
-
-        this.vertexPositionLocation = this.gl.getAttribLocation(this.program, "vertexPosition");
-        this.textureCoordLocation = this.gl.getAttribLocation(this.program, "textureCoord");
-
-        this.gl.enableVertexAttribArray(this.vertexPositionLocation);
-        this.gl.enableVertexAttribArray(this.textureCoordLocation);
-        this.resized();
-
-        // View is identity for now. Possibly will be removed later if not needed.
-
-        this.gl.enable(WebGLRenderingContext.CULL_FACE);
-        this.gl.cullFace(WebGLRenderingContext.FRONT);
-
-        this.gl.depthFunc(WebGLRenderingContext.LESS);
-
-        this.gl.activeTexture(WebGLRenderingContext.TEXTURE0);
-        this.gl.uniform1i(this.samplerLocation, 0);
-
-        this.gl.enable(WebGLRenderingContext.BLEND);
-        this.gl.blendFunc(WebGLRenderingContext.SRC_ALPHA, WebGLRenderingContext.ONE_MINUS_SRC_ALPHA);
+        super(canvas);        
     }
 
     public renderScene() {
@@ -120,19 +74,6 @@ export default class WebGlRenderer implements IRenderer {
                 entity.render();
             }
         }
-    }
-
-    public resized() {
-        this.width = this.canvas.offsetWidth;
-        this.height = this.canvas.offsetHeight;
-        this.canvas.width = this.width;
-        this.canvas.height = this.height;
-        this.gl.viewport(0, 0, this.width, this.height);
-        //if (this.subtitleBuffer) {
-        //    this.subtitleBuffer.setLocation(40, this.height - 45, this.width - 50, 45);
-        //    this.locationBuffer.setLocation(0, 0, this.width, 100);
-        //    this.pointBuffer.setLocation(0, 0, this.width, 100);
-        //}
     }
 
     public buildCityModel(map: GameMap, style: Style) {
@@ -248,68 +189,6 @@ export default class WebGlRenderer implements IRenderer {
         this.altitude = position[2];
     }
 
-    private createProgram() {
-        var vertShader = this.gl.createShader(WebGLRenderingContext.VERTEX_SHADER);
-        if (!vertShader) {
-            throw new Error("Failed to create GL vertex shader");
-        }
-
-        this.gl.shaderSource(vertShader, Shaders.vertexData);
-        this.gl.compileShader(vertShader);
-
-        if (!this.gl.getShaderParameter(vertShader, WebGLRenderingContext.COMPILE_STATUS)) {
-            throw new Error(this.gl.getShaderInfoLog(vertShader) ?? "Generic error while compiling GL vertex shader.");
-        }
-
-        var fragShader = this.gl.createShader(WebGLRenderingContext.FRAGMENT_SHADER);
-        if (!fragShader) {
-            throw new Error("Failed to create GL fragment shader");
-        }
-
-        this.gl.shaderSource(fragShader, Shaders.fragmentData);
-        this.gl.compileShader(fragShader);
-
-        if (!this.gl.getShaderParameter(fragShader, WebGLRenderingContext.COMPILE_STATUS)) {
-            throw new Error(this.gl.getShaderInfoLog(fragShader) ?? "Generic error while compiling GL fragment shader.");
-        }
-
-        var program = this.gl.createProgram();
-        if (!program) {
-            throw new Error("Failed to create GL program.");
-        }
-        this.gl.attachShader(program, vertShader);
-        this.gl.attachShader(program, fragShader);
-        this.gl.linkProgram(program);
-
-        if (!this.gl.getProgramParameter(program, WebGLRenderingContext.LINK_STATUS)) {
-            throw new Error(this.gl.getProgramInfoLog(program) ?? "Generic error while compiling GL program.");
-        }
-
-        this.gl.useProgram(program);
-        return program;
-    }
-
-    public loadTexture(textureData: HTMLCanvasElement | HTMLImageElement): WebGLTexture {
-        let texture = this.textureMap.get(textureData);
-        if (!texture) {
-            const newTexture = this.gl.createTexture();
-            if (!newTexture) {
-                throw new Error("Can't create texture");
-            }
-
-            this.gl.bindTexture(WebGLRenderingContext.TEXTURE_2D, newTexture);
-            this.gl.texImage2D(WebGLRenderingContext.TEXTURE_2D, 0, WebGLRenderingContext.RGBA, WebGLRenderingContext.RGBA, WebGLRenderingContext.UNSIGNED_BYTE, textureData);
-            this.gl.texParameteri(WebGLRenderingContext.TEXTURE_2D, WebGLRenderingContext.TEXTURE_MAG_FILTER, WebGLRenderingContext.NEAREST);
-            this.gl.texParameteri(WebGLRenderingContext.TEXTURE_2D, WebGLRenderingContext.TEXTURE_MIN_FILTER, WebGLRenderingContext.NEAREST);
-            this.gl.texParameteri(WebGLRenderingContext.TEXTURE_2D, WebGLRenderingContext.TEXTURE_WRAP_S, WebGLRenderingContext.CLAMP_TO_EDGE);
-            this.gl.texParameteri(WebGLRenderingContext.TEXTURE_2D, WebGLRenderingContext.TEXTURE_WRAP_T, WebGLRenderingContext.CLAMP_TO_EDGE);
-            texture = newTexture;
-            this.textureMap.set(textureData, newTexture);
-        }
-
-        return texture;
-    }
-
     public createModel(modelData: IModelData): Model {
         let texture = this.textureMap.get(modelData.texture);
         if (!texture) {
@@ -322,16 +201,7 @@ export default class WebGlRenderer implements IRenderer {
         return result;
     }
 
-    public createTextModel(modelData: IModelData): Model {
-        let texture = this.textureMap.get(modelData.texture);
-        if (!texture) {
-            texture = this.loadTexture(modelData.texture);
-            this.textureMap.set(modelData.texture, texture);
-        }
 
-        const result = new Model(this.gl, modelData, texture);
-        return result;
-    }
 
     public createModelFromSprite(spriteInfo: ISpriteLocation, modelTexture: HTMLImageElement | HTMLCanvasElement, offsetX: number = 0, offsetY: number = 0): Model {
         let texture = this.textureMap.get(modelTexture);
@@ -353,10 +223,6 @@ export default class WebGlRenderer implements IRenderer {
 
         const result = new Model(this.gl, modelData, texture);
         return result;
-    }
-
-    public createTextBuffer(x: number, y: number, width: number, height: number, font: Font, options?: ITextBufferOptions): TextBuffer {
-        return new TextBuffer(this, font, x, y, width, height, options);
     }
 
     public update(time: number) {
@@ -403,7 +269,7 @@ export default class WebGlRenderer implements IRenderer {
 ////    texture: HTMLCanvasElement | HTMLImageElement;
 ////}
 
-export interface IRenderer {
+export interface IRenderer extends IBaseRenderer {
     readonly worldEntities: Entity[];
     readonly guiEntities: Entity[];
 
@@ -416,7 +282,7 @@ export interface IRenderer {
     clip(area: [number, number, number, number] | null): void;
     createModel(modelData: IModelData): void;
     createModelFromSprite(spriteInfo: ISpriteLocation, modelTexture: HTMLImageElement | HTMLCanvasElement, offsetX?: number, offsetY?: number): Model;
-    createTextBuffer(x: number, y: number, width: number, height: number, font: Font, options?: ITextBufferOptions): ITextBuffer;
+    
 }
 
 export interface ITextBufferOptions {

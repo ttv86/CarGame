@@ -41,6 +41,7 @@ if (app) {
 
         ipcMain.on("require-file", (event: Electron.IpcMainEvent, filename: string) => {
             // Check ".." so files outside data directory aren't read.
+            filename = decodeURI(filename);
             if (gameDataDir && (filename.indexOf("..") === -1)) {
                 const file = join(gameDataDir, filename);
                 if (existsSync(file)) {
@@ -79,7 +80,7 @@ if (app) {
 
     const port = process.env.port ?? 1337
     createServer((req: IncomingMessage, res: ServerResponse) => {
-        let url = (req.url === "/" ? "index.html" : req.url) ?? "index.html";
+        let url = req.url === "/" ? "index.html" : decodeURI(req.url ?? "index.html");
         // Check ".." so files outside data directory aren't read.
         if ((!gameDataDir) || (url.indexOf("..") > -1)) {
             res.writeHead(404);

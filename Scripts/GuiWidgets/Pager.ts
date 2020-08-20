@@ -1,5 +1,5 @@
 import Style from "../DataReaders/Style";
-import { IRenderer } from "../Rendering/WebGlRenderer";
+import { IRenderer } from "../Rendering/WebGlCityRenderer";
 import Entity from "../Entity";
 import Sprite from "../Sprite";
 import { ITextBuffer } from "../Rendering/TextBuffer";

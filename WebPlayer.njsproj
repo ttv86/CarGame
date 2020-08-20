@@ -35,6 +35,9 @@
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="Scripts\MainMenu.ts">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="Scripts\Rendering\Shaders.ts">
       <SubType>Code</SubType>
     </Content>
@@ -51,6 +54,7 @@
     <Folder Include="Scripts\" />
     <Folder Include="Scripts\GuiWidgets\" />
     <Folder Include="Scripts\DataReaders\" />
+    <Folder Include="Scripts\MainMenu\" />
     <Folder Include="Scripts\Rendering\" />
     <Folder Include="Scripts\WorldEntities\" />
     <Folder Include="wwwroot\" />
@@ -74,6 +78,9 @@
     <TypeScriptCompile Include="Scripts\KeyboardHandler.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
+    <TypeScriptCompile Include="Scripts\MainMenu\WebGlMainMenuRenderer.ts">
+      <SubType>Code</SubType>
+    </TypeScriptCompile>
     <TypeScriptCompile Include="Scripts\Rendering\CityBlock.ts" />
     <TypeScriptCompile Include="Scripts\Rendering\Model.ts">
       <SubType>Code</SubType>
@@ -81,7 +88,13 @@
     <TypeScriptCompile Include="Scripts\Rendering\TextBuffer.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
+    <TypeScriptCompile Include="Scripts\Rendering\WebGlBaseRenderer.ts">
+      <SubType>Code</SubType>
+    </TypeScriptCompile>
     <TypeScriptCompile Include="Scripts\Sprite.ts">
+      <SubType>Code</SubType>
+    </TypeScriptCompile>
+    <TypeScriptCompile Include="Scripts\TrainSystem.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
     <TypeScriptCompile Include="Scripts\Types.ts">
@@ -121,7 +134,7 @@
     <TypeScriptCompile Include="Scripts\WorldEntities\Vehicle.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
-    <TypeScriptCompile Include="Scripts\Rendering\WebGlRenderer.ts">
+    <TypeScriptCompile Include="Scripts\Rendering\WebGlCityRenderer.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
   </ItemGroup>

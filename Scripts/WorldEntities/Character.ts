@@ -1,11 +1,11 @@
 import Entity from "../Entity";
-import { IRenderer } from "../Rendering/WebGlRenderer";
+import { IRenderer } from "../Rendering/WebGlCityRenderer";
 import Style from "../DataReaders/Style";
 import Vehicle from "./Vehicle";
 import Game from "../Game";
 
-const walkSpeed = 1; // 1 tile per second.
-const turnSpeed = 1; // 1 radian (~57.3deg) per second.
+const walkSpeed = 64; // 1 tile per second.
+const turnSpeed = Math.PI; // 3.14 radian (180deg) per second.
 
 /** People in game world. Player, police, pedestrians, etc... */
 export default class Character extends Entity {
@@ -22,18 +22,18 @@ export default class Character extends Entity {
     public do(command: string, time: number) {
         switch (command) {
             case "walk":
-                this.x += Math.sin(this.facing) * time * walkSpeed;
-                this.y += Math.cos(this.facing) * time * walkSpeed;
+                this.x += Math.sin(this.rotation) * time * walkSpeed;
+                this.y += Math.cos(this.rotation) * time * walkSpeed;
                 break;
             case "retreat":
-                this.x -= Math.sin(this.facing) * time * walkSpeed;
-                this.y -= Math.cos(this.facing) * time * walkSpeed;
+                this.x -= Math.sin(this.rotation) * time * walkSpeed;
+                this.y -= Math.cos(this.rotation) * time * walkSpeed;
                 break;
             case "turnLeft":
-                this.facing += time * turnSpeed;
+                this.rotation += time * turnSpeed;
                 break;
             case "turnRight":
-                this.facing -= time * turnSpeed;
+                this.rotation -= time * turnSpeed;
                 break;
         }
     }

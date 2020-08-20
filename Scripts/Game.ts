@@ -1,5 +1,5 @@
 import Character, { CharacterState } from "./WorldEntities/Character";
-import { IRenderer } from "./Rendering/WebGlRenderer";
+import { IRenderer } from "./Rendering/WebGlCityRenderer";
 import Style, { ICarInfo } from "./DataReaders/Style";
 import Entity from "./Entity";
 import GameMap from "./DataReaders/GameMap";
@@ -13,6 +13,7 @@ import Mission from "./Mission";
 import Trigger from "./WorldEntities/Trigger";
 import SubtitleBox from "./GuiWidgets/SubtitleBox";
 import Audio from "./DataReaders/Audio";
+import TrainSystem from "./TrainSystem";
 
 export default class Game {
     private readonly subtitles: SubtitleBox;
@@ -35,6 +36,7 @@ export default class Game {
     public targetScore: number = 0;
     public secretMissions: number = 0;
     public score: number = 0;
+    public trainSystem: TrainSystem;
 
     constructor(
         map: GameMap,
@@ -71,6 +73,8 @@ export default class Game {
 
         this.subtitles = new SubtitleBox(this, this.renderer, style, subtitleFont);
         this.renderer.guiEntities.push(this.subtitles);
+
+        this.trainSystem = new TrainSystem(this, map, style);
 
         // Make sure areas are sorted by size.
         map.areas.sort((a1, a2) => (a1.height * a1.width) - (a2.height * a2.width));
@@ -140,19 +144,19 @@ export default class Game {
                 this.player.z = vehicle.z;
             } else {
                 if (this.keyboard.isDown("up")) {
-                    this.camera[1] -= time * this.camera[2] * 5;
-                    //this.player.do("walk", time);
+                    //this.camera[1] -= time * this.camera[2] * 5;
+                    this.player.do("walk", time);
                 } else if (this.keyboard.isDown("down")) {
-                    this.camera[1] += time * this.camera[2] * 5;
-                    //this.player.do("retreat", time);
+                    //this.camera[1] += time * this.camera[2] * 5;
+                    this.player.do("retreat", time);
                 }
 
                 if (this.keyboard.isDown("left")) {
-                    this.camera[0] -= time * this.camera[2] * 5;
-                    //this.player.do("turnLeft", time);
+                    //this.camera[0] -= time * this.camera[2] * 5;
+                    this.player.do("turnLeft", time);
                 } else if (this.keyboard.isDown("right")) {
-                    this.camera[0] += time * this.camera[2] * 5;
-                    //this.player.do("turnRight", time);
+                    //this.camera[0] += time * this.camera[2] * 5;
+                    this.player.do("turnRight", time);
                 }
 
                 if (this.keyboard.isPressed("enterExit")) {

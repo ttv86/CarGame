@@ -1,4 +1,4 @@
-import { IRenderer } from "./Rendering/WebGlRenderer";
+import { IRenderer } from "./Rendering/WebGlCityRenderer";
 import Style from "./DataReaders/Style";
 import Sprite from "./Sprite";
 import Game from "./Game";

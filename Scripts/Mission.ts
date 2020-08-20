@@ -3,8 +3,12 @@ import Game from "./Game";
 import { IMission } from "./DataReaders/MissionReader";
 import Character from "./WorldEntities/Character";
 import Trigger from "./WorldEntities/Trigger";
+import TrainSystem from "./TrainSystem";
 
-type InitLineFunction = (line: number, reset: boolean, coordinates: ICoordinates, param1?: number, param2?: number, param3?: number, param4?: number, param5?: number) => unknown;
+const FramesPerSecond = 25;
+
+type InitLineFunction = (line: number | null, reset: boolean, coordinates: ICoordinates, param1?: number, param2?: number, param3?: number, param4?: number, param5?: number) => unknown;
+type CommandLineFunction = (line: number | null, object: number, success: number, fail: number, data: number, scoreOrText: number) => (number | ICommandResult);
 export default class Mission {
     private game: Game;
     private missionData: IMission;
@@ -16,6 +20,7 @@ export default class Mission {
         "BOMBSHOP": this.initBombshop as InitLineFunction,
         "BOMBSHOP_COST": this.initBombshopCost as InitLineFunction,
         "CANNON_START": this.initCannonStart as InitLineFunction,
+        "CARBOMB": this.initCarbomb as InitLineFunction,
         "CARBOMB_TRIG": this.initCarbombTrig as InitLineFunction,
         "CARDESTROY_TRIG": this.initCardestroyTrig as InitLineFunction,
         "CARSTUCK_TRIG": this.initCarstuckTrig as InitLineFunction,
@@ -28,6 +33,7 @@ export default class Mission {
         "CRANE": this.initCrane as InitLineFunction,
         "DAMAGE_TRIG": this.initDamageTrig as InitLineFunction,
         "DOOR": this.initDoor as InitLineFunction,
+        "DRIVER": this.initDriver as InitLineFunction,
         "DUM_MISSION_TRIG": this.initDumMissionTrig as InitLineFunction,
         "DUM_PED_BLOCK_TRIG": this.initDumPedBlockTrig as InitLineFunction,
         "DUMMY": this.initDummy as InitLineFunction,
@@ -64,7 +70,7 @@ export default class Mission {
         "TELEPHONE": this.initTelephone as InitLineFunction,
         "TRIGGER": this.initTrigger as InitLineFunction,
     };
-    private commandMap: Record<string, (line: number | undefined, param1: number, param2: number, param3: number, param4: number, param5: number) => number> = {
+    private commandMap: Record<string, CommandLineFunction> = {
         "ADD_A_LIFE": this.commandAddALife,
         "ANSWER": this.commandAnswer,
         "ARMEDMESS": this.commandArmedmess,
@@ -211,7 +217,7 @@ export default class Mission {
             if (func) {
                 //console.log(`Init ${line.commandName} (${line.coordinateX}, ${line.coordinateY}, ${line.coordinateZ})`);
                 const result = func.call(this, line.lineNumber, line.reset, { x: line.coordinateX, y: line.coordinateY, z: line.coordinateZ }, line.param1, line.param2, line.param3, line.param4, line.param5);
-                if ((result !== void 0) && (result !== null)) {
+                if ((line.lineNumber !== void 0) && (line.lineNumber !== null) && (result !== void 0) && (result !== null)) {
                     this.initReferences.set(line.lineNumber, result);
                 }
             }
@@ -233,16 +239,30 @@ export default class Mission {
                 const line = this.missionData.commandLines[thread.pointer];
                 const func = this.commandMap[line.commandName];
                 if (func) {
-                    const next = func.call(this, line.lineNumber, line.param1, line.param2, line.param3, line.param4, line.param5);
-                    if (next === -1) {
+                    let next = func.call(this, line.lineNumber, line.param1, line.param2, line.param3, line.param4, line.param5);
+                    if (typeof next === "number") {
+                        if (next === -1) {
+                            next = { exitThread: true };
+                        } else if (next === 0) {
+                            next = { lineJump: 1 };
+                        } else {
+                            next = { commandReference: next };
+                        }
+                    }
+
+                    if (next.commandReference === 0) {
+                        next = { ...next, commandReference: void 0, lineJump: 1 };
+                    }
+
+                    if (next.exitThread) {
                         keepGoing = false;
                         thread.stop();
                         this.threads.splice(this.threads.indexOf(thread), 1);
-                    } else if (next === 0) {
-                        thread.pointer++;
-                    } else {
+                    } else if (typeof next.lineJump === "number") {
+                        thread.pointer += next.lineJump;
+                    } else if (typeof next.commandReference === "number") {
                         keepGoing = false;
-                        const nextCommand = this.commandReferences.get(next);
+                        const nextCommand = this.commandReferences.get(next.commandReference);
                         if (nextCommand !== void 0) {
                             thread.pointer = nextCommand;
                         } else {
@@ -293,15 +313,15 @@ export default class Mission {
     }
 
     /**
-     * Unknown function. Used 24 times.
+     * Creates a barrier that can only be opened by emergency vehicles. <num frames> is the  number of frames of animation. <type> is the interior block to use.
      * @param line Line number of command.
      * @param reset Whether to keep the object when RESET happens.
      * @param coordinates. Command coordinates in full tiles. (0-255)
-     * @param direction Direction of door face. 0 - West, 1 - East, 2 - North, 3 - South.
-     * @param vehicleType Vehicle type tp allow through.
+     * @param face Direction of door face. 0 - West, 1 - East, 2 - North, 3 - South.
+     * @param numFrames frames Vehicle type to allow through.
      * @param interior Door interior style.
      */
-    private initBarrier(line: number, reset: boolean, coordinates: ICoordinates, direction: number, vehicleType: number, interior: number): void {
+    private initBarrier(line: number, reset: boolean, coordinates: ICoordinates, face: number, numFrames: number, interior: number): void {
     }
 
     /**
@@ -328,12 +348,12 @@ export default class Mission {
     }
 
     /**
-     * Unknown function. Used 56 times.
+     * Creates a bomb shop trigger that places a bomb in your current car for a price!
      * @param line Line number of command.
      * @param reset Always true.
      * @param coordinates. Command coordinates in full tiles. (0-255)
-     * @param param1 Unknown parameter. Always 0
-     * @param param2 Unknown parameter. Always 0
+     * @param param1 Always 0
+     * @param param2 Always 0
      */
     private initBombshop(line: number, reset: never, coordinates: ICoordinates, param1: number, param2: number): void {
     }
@@ -358,6 +378,17 @@ export default class Mission {
      * @param param2 Unknown parameter. Always 0
      */
     private initCannonStart(line: number, reset: never, coordinates: ICoordinates, param1: number, param2: number): void {
+    }
+
+    /**
+     * Creates a car with a bomb in it.
+     * @param line Line number of command.
+     * @param reset Always false.
+     * @param coordinates. Command coordinates in full tiles. (0-255)
+     * @param type Type can be following: 0 - No Bomb (disarm), 1 - Unarmed 5 second bomb, 2 - Armed 5 second bomb, 3 - Model Car Bomb, 4 - Dodgy Explosives (blow on damage), 5 - Unarmed speed bomb (>3/4 max speed to arm), 6 - Armed speed bomb (<1/2 max speed to detonate)
+     * @param angle Angle of the car
+     */
+    private initCarbomb(line: number, reset: never, coordinates: ICoordinates, type: number, angle: number): void {
     }
 
     /**
@@ -452,14 +483,14 @@ export default class Mission {
     }
 
     /**
-     * Unknown function. Used 169 times.
+     * Defines a counter that can be used for looped missions with the DECCOUNT command, e.g. for keeping track of the number of cars you’ve brought to a specific location.
      * @param line Line number of command.
      * @param reset Whether to keep the object when RESET happens.
      * @param coordinates. Not used.
-     * @param param1 Unknown parameter. Possible values: 0, 6, 4, 12, 3, 9, 1, 15, 2, 10, 5, 7, 17
-     * @param param2 Unknown parameter. Always 0
+     * @param count Initial count.
+     * @param param2 Always 0
      */
-    private initCounter(line: number, reset: boolean, coordinates: never, param1: number, param2: number): void {
+    private initCounter(line: number, reset: boolean, coordinates: never, count: number, param2: number): void {
     }
 
     /**
@@ -485,15 +516,27 @@ export default class Mission {
     }
 
     /**
-     * Unknown function. Used 171 times.
+     * Creates a door of type <type> on face <face> of a building, with interior block <interior>.
      * @param line Line number of command.
      * @param reset Whether to keep the object when RESET happens.
      * @param coordinates. Command coordinates in full tiles. (0-255)
-     * @param direction Direction of door face. 0 - West, 1 - East, 2 - North, 3 - South.
-     * @param exterior Door exterior style.
+     * @param face Direction of door face. 0 - West, 1 - East, 2 - North, 3 - South.
+     * @param type Door exterior style.
      * @param interior Door interior style.
      */
     private initDoor(line: number, reset: boolean, coordinates: ICoordinates, direction: number, type: number, interior: number): void {
+    }
+
+    /**
+     * Creates a player pedestrian inside car <car>.
+     * @param line Line number of command.
+     * @param reset Whether to keep the object when RESET happens.
+     * @param coordinates. Command coordinates in full tiles. (0-255)
+     * @param param1 Always 0
+     * @param car Car model.
+     */
+    private initDriver(line: number, reset: boolean, coordinates: ICoordinates, param1: number, car: number) {
+
     }
 
     /**
@@ -543,14 +586,14 @@ export default class Mission {
     }
 
     /**
-     * Unknown function. Used 85 times.
+     *  Defines an object that can be created in the future (eg. a Suitcase)
      * @param line Line number of command.
      * @param reset Whether to keep the object when RESET happens.
      * @param coordinates. Command coordinates in pixels. (0-16383)
-     * @param param1 Unknown parameter. Possible values: 41, 47, 88, 94
-     * @param param2 Unknown parameter. Could be angle. Possible values: 0, 768, 256
+     * @param type Object type.
+     * @param angle Object angle.
      */
-    private initFuture(line: number, reset: boolean, coordinates: ICoordinates, param1: number, param2: number): void {
+    private initFuture(line: number, reset: boolean, coordinates: ICoordinates, type: number, angle: number): void {
     }
 
     /**
@@ -713,14 +756,14 @@ export default class Mission {
     }
 
     /**
-     * Unknown function. Used 1 times.
+     * Creates an object of type <type> facing <angle>.
      * @param line Line number of command.
      * @param reset Always false.
      * @param coordinates. Command coordinates in pixels. (0-16383)
-     * @param param1 Unknown parameter. Always 47
-     * @param param2 Unknown parameter. Always 0
+     * @param type Object type.
+     * @param angle Object angle.
      */
-    private initObject(line: number, reset: never, coordinates: ICoordinates, param1: number, param2: number): void {
+    private initObject(line: number, reset: never, coordinates: ICoordinates, type: number, angle: number): void {
     }
 
     /**
@@ -744,9 +787,9 @@ export default class Mission {
      * @param angle Angle of the parked car.
      */
     private initParkedPixels(line: number, reset: boolean, coordinates: ICoordinates, carType: number, angle: number): Vehicle | null {
-        const info = this.game.style.carInfos[carType]; //.getVehicleInfo(carType);
+        const info = this.game.style.carInfos.find(x => x.model === carType); //.getVehicleInfo(carType);
         if (info) {
-            const vehicle = new Vehicle(this.game, this.game.renderer, this.game.style, coordinates.x, coordinates.y, coordinates.z, 0, info);
+            const vehicle = new Vehicle(this.game, this.game.renderer, this.game.style, coordinates.x, coordinates.y, coordinates.z, angle / 512 * Math.PI, info);
             this.game.renderer.worldEntities.push(vehicle);
             this.game.vehicles.push(vehicle);
         //    const vehicle = new Vehicle(coordinates.x / 64, coordinates.y / 64, coordinates.z / 64, angle, info);
@@ -794,14 +837,14 @@ export default class Mission {
     }
 
     /**
-     * Sets player startup position.
+     * Creates a player pedestrian who owns <car> where car is the line number of it.
      * @param line Line number of command.
      * @param reset Whether to keep the object when RESET happens.
      * @param coordinates. Command coordinates in full tiles. (0-255)
-     * @param ownedCar Gived player an exclusive access to a vehicle.
+     * @param car Gived player an exclusive access to a vehicle.
      * @param angle Angle of the player.
      */
-    private initPlayer(line: number, reset: boolean, coordinates: ICoordinates, ownedCar: number, angle: number): Character {
+    private initPlayer(line: number, reset: boolean, coordinates: ICoordinates, car: number, angle: number): Character {
         this.game.player = new Character(this.game, this.game.renderer, this.game.style, (coordinates.x + .5) * 64, (coordinates.y + .5) * 64, (coordinates.z) * 64, angle / 163);
         this.game.renderer.worldEntities.push(this.game.player);
         return this.game.player;
@@ -861,23 +904,23 @@ export default class Mission {
     }
 
     /**
-     * Unknown function. Used 110 times.
+     * Creates a spray shop for <colour>.
      * @param line Line number of command.
      * @param reset Always true.
      * @param coordinates. Command coordinates in full tiles. (0-255)
-     * @param param1 Unknown parameter. Possible values: 1, 2, 3, 4, 5, 6
-     * @param param2 Unknown parameter. Always 0
+     * @param color Color of spray. Possible values: 1, 2, 3, 4, 5, 6
+     * @param radius Radius of shop.
      */
     private initSpray(line: number, reset: never, coordinates: ICoordinates, param1: number, param2: number): void {
     }
 
     /**
-     * Unknown function. Used 171 times.
+     * Creates a target area used for explosions, destinations
      * @param line Line number of command.
      * @param reset Whether to keep the object when RESET happens.
      * @param coordinates. Command coordinates in pixels. (0-16383)
-     * @param param1 Unknown parameter. Could be init line reference. Possible values: 0, 9, 35
-     * @param param2 Unknown parameter. Could be angle. Possible values: 0, 512, 256
+     * @param param1 Always 0
+     * @param param2 Always 0
      */
     private initTarget(line: number, reset: boolean, coordinates: ICoordinates, param1: number, param2: number): void {
     }
@@ -895,18 +938,18 @@ export default class Mission {
     }
 
     /**
-     * Creates a telephone at given position
+     * Creates a telephone at <angle>. 
      * @param line Line number of command.
      * @param reset Always true.
      * @param coordinates. Command coordinates in full tiles. (0-255)
-     * @param param1 Unknown parameter. Always 0
+     * @param means If <means> is greater than  0, then when the player is sent to answer this phone, how he got there will be checked - it isn’t used currently.
      * @param angle Angle of the telephone.
      */
-    private initTelephone(line: number, reset: never, coordinates: ICoordinates, param1: never, angle: number): void {
+    private initTelephone(line: number, reset: never, coordinates: ICoordinates, means: never, angle: number): void {
     }
 
     /**
-     * Unknown function. Used 1990 times.
+     * Creates a trigger that will start <line> line of  Targets with  a radius of <range> blocks in a ‘square’ range.  A range of  0 means check just this block.
      * @param line Line number of command.
      * @param reset Whether to keep the object when RESET happens.
      * @param coordinates. Command coordinates in full tiles. (0-255)
@@ -929,7 +972,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always -1
      * @param param5 Unknown parameter. Always 0
      */
-    private commandAddALife(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandAddALife(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -942,7 +985,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Could be init line reference. Possible values: 10, 30, 5
      * @param param5 Unknown parameter. Possible values: 2500, 0, 1500, 5000, 10000, 1000
      */
-    private commandAnswer(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandAnswer(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -955,7 +998,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandArmedmess(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandArmedmess(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -968,7 +1011,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Could be command line reference. Possible values: 0, 5000, 10000, 1000
      */
-    private commandArrow(line: number | undefined, targetId: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandArrow(line: number | null, targetId: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -981,7 +1024,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param points Number of points to give user.
      */
-    private commandArrowOff(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandArrowOff(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -994,7 +1037,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Could be init line reference. Possible values: 0, 1000
      */
-    private commandArrowcar(line: number | undefined, targetId: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandArrowcar(line: number | null, targetId: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1007,7 +1050,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandArrowped(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandArrowped(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1020,7 +1063,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandBankAlarmOff(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandBankAlarmOff(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1033,7 +1076,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Could be init line reference. Possible values: 241, 208, 299, 161, 364
      * @param param5 Unknown parameter. Always 0
      */
-    private commandBankAlarmOn(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandBankAlarmOn(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1046,7 +1089,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Could be init line reference. Possible values: 241, 208, 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandBankRobbery(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandBankRobbery(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1059,7 +1102,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param textReference Text to be shown. Reference to translation file.
      */
-    private commandBrief(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, textReference: number): number {
+    private commandBrief(line: number | null, param1: number, nextLine: number, param3: number, param4: number, textReference: number): number {
         this.game.showText(textReference, "phone");
         return nextLine;
     }
@@ -1073,7 +1116,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandCancelBriefing(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandCancelBriefing(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1086,7 +1129,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandCarOn(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandCarOn(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1099,7 +1142,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandChangeBlock(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandChangeBlock(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1112,7 +1155,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Possible values: 21, 22, 5, 24, 4, 7, 25, 8, 1, 0, 2, 26, 44, 6, 46, 10, 41, 23, 13, 12, 11, 45, 42
      * @param param5 Unknown parameter. Could be init line reference. Possible values: 294, 0, 255, 335, 597, 596, 605, 595, 604, 631, 632, -1, 120, 123, 126, 180, 85, 162, 168, 169, 3280, 140, 141, 142, 143, 240, 11810, 300, 310, 320, 330, 340, 350, 380, 390, 400, 410, 420, 425, 1200, 1220, 1240, 1260, 1410, 1830, 175, 209, 342, 445, 1050, 1030, 1000, 2000, 3020, 3000, 4040, 4050, 4070, 4060, 6040, 6030, 6070, 6060, 6100, 6090, 6130, 6120, 6160, 6150, 6050, 6080, 6110, 6140, 6170, 9180, 12000, 12010, 12020, 12050, 12060, 12070, 12030
      */
-    private commandChangePedType(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandChangePedType(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1125,7 +1168,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandChangeType(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandChangeType(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1138,7 +1181,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Could be command line reference. Could be init line reference. Possible values: -1, 3, 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandCheckCar(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandCheckCar(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1151,21 +1194,28 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandCloseDoor(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandCloseDoor(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
     /**
-     * Unknown function. Used 331 times.
+     * Takes the counter <counter> and compares it to the number <check>.
      * @param line Line number of command.
-     * @param param1 Unknown parameter. Could be init line reference. Possible values: 548, 549, 550, 551, 574, 138, 575, 577, 578, 579, 580, 657, 658, 659, 660, 685, 367, 686, 689, 690, 691, 692, 9390, 3971, 3972, 3973, 3974, 9420, 9385, 3961, 3962, 3963, 3964, 1565, 1566, 1567, 5961, 5962, 5963, 5964, 5861, 5862, 5863, 5864, 23350, 992, 20722, 23635, 23636, 23634, 24150, 8552, 24160, 24161, 24162, 24163, 24110, 24111, 24112, 24113, 24120, 24121, 24122, 24123, 24130, 24131, 24132, 24133, 24140, 24141, 24142, 24143, 23600, 1190, 1200, 2200, 4224, 4220, 4221, 4222, 4223, 10210, 10250, 10220, 10260, 10230, 10270, 10240, 10280, 12270, 13200, 13210, 15194, 15195, 15196
-     * @param nextLine Next command line.
-     * @param param3 Unknown parameter. Could be command line reference. Possible values: 0, 482, 903, 1463, 1905, 8940, 29020, 29040, 29060, 29080, 29220, 29240, 29260, 29280, 29420, 29440, 29460, 29480, 29620, 29640, 29660, 29680, 2692, 5350, 16759, 17298, 18598, 15404, 28020, 451, 2545, 2557, -1, 5404, 5414, 27240, 27440, 27640, 28001, 32002, 3594, 3601, 3624, 7295, 7395, 7495, 7595, 20072, 20074, 20076, 20078, 20080, 20082, 20085, 20070, 20102, 20104, 20106, 20108, 20110, 20112, 20115, 20100, 20152, 20154, 20156, 20158, 20160, 20162, 20165, 20150, 20202, 20204, 20206, 20208, 20210, 20212, 20215, 20200, 23123, 23173, 23213, 23253, 23293, 25704, 25714, 27002, 27801, 27800
-     * @param param4 Unknown parameter. Possible values: 1, 4, 0, 7, 6, 5, 3, 2
-     * @param param5 Unknown parameter. Always 0
+     * @param counterReference Counter reference.
+     * @param nextLineIfTrue Next command line if counter and check are equals.
+     * @param nextLineIfFalse Next command line if counter and check are not equals.
+     * @param check Value to check counter against.
+     * @param score Add to player score.
      */
-    private commandCompare(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
-        return nextLine;
+    private commandCompare(line: number | null, counterReference: number, nextLineIfTrue: number, nextLineIfFalse: number, check: number, score: number): number {
+        this.game.score += score;
+        const reference = this.initReferences.get(counterReference);
+        if (reference instanceof Counter) {
+            return (reference.value === check) ? nextLineIfTrue : nextLineIfFalse;
+        }
+
+        // Didn't reference a counter object. Always jump to false branch.
+        return nextLineIfFalse;
     }
 
     /**
@@ -1177,7 +1227,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Could be init line reference. Possible values: 286, 288, 290, 292, 93, 95, 97, 99, 201, 203, 205, 207
      * @param param5 Unknown parameter. Always 0
      */
-    private commandCrane(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandCrane(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1190,21 +1240,29 @@ export default class Mission {
      * @param param4 Unknown parameter. Possible values: -1, 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandDeadArrested(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandDeadArrested(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
     /**
-     * Unknown function. Used 435 times.
+     * Decrements the counter <counter> and if it reaches zero then it goes to <succ> otherwise it goes to <fail>.
      * @param line Line number of command.
-     * @param param1 Unknown parameter. Could be init line reference. Possible values: 552, 574, 553, 368, 685, 369, 211, 3800, 3560, 3570, 285, 3990, 3991, 9420, 8000, 600, 8030, 8020, 1575, 1605, 9000, 23600, 23300, 992, 20722, 23634, 23635, 23636, 24150, 403, 8552, 638, 24160, 24161, 24162, 23350, 23330, 17000, 1190, 1200, 2200, 4224, 4220, 4200, 4221, 4222, 4223, 4210, 5190, 9230, 10210, 10250, 10220, 10260, 10230, 10270, 10240, 10280, 12270, 13200, 13210, 13240, 15196, 15194, 15195
-     * @param nextLine Next command line.
-     * @param param3 Unknown parameter. Could be command line reference. Possible values: 0, 11020, 11040, 11060, 11070, 11080, 11090, 3880, 11100, 11110, 11120, 11130, 810, 21040, 21020, 21050, 21060, 21070, 21080, 21090, 21100, 16742, 21000, 21010, 21030, 19823, 21110, -1, 20000, 15003, 11401, 11501, 11601, 11701, 11801, 11901, 27003, 29000, 6513, 6553, 6593, 642, 782, 29942, 31042, 31142, 31553, 31593, 31633, 31673, 31713, 31793, 31833, 31913, 31953, 32213, 9310, 16927, 18170, 18190, 18210, 18230, 18250, 24280, 25670, 26410, 742, 31753, 31873, 32442, 32542, 32642
-     * @param param4 Unknown parameter. Always 0
-     * @param param5 Unknown parameter. Always 0
+     * @param counter Counter reference.
+     * @param nextLineIfTrue Next command line if counter is zero.
+     * @param nextLineIfFalse Next command line if counter is bigger than zero
+     * @param param3 Unused parameter.
+     * @param score Add to player score.
      */
-    private commandDeccount(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
-        return nextLine;
+    private commandDeccount(line: number | null, counter: number, nextLineIfTrue: number, nextLineIfFalse: number, param3: number, score: number): number {
+        this.game.score += score;
+        const reference = this.initReferences.get(counter);
+        if (reference instanceof Counter) {
+            reference.value -= 1;
+            return (reference.value === 0) ? nextLineIfTrue : nextLineIfFalse;
+        }
+
+        // Didn't reference a counter object. Always jump to false branch.
+        return nextLineIfFalse;
     }
 
     /**
@@ -1216,7 +1274,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Possible values: 0, 750
      * @param points Points to give the player.
      */
-    private commandDestroy(line: number | undefined, carReference: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandDestroy(line: number | null, carReference: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1229,7 +1287,7 @@ export default class Mission {
      * @param param4 Unknown parameter.
      * @param param5 Unknown parameter.
      */
-    private commandDisable(line: number | undefined, triggerReference: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandDisable(line: number | null, triggerReference: number, nextLine: number, param3: number, param4: number, param5: number): number {
         const reference = this.initReferences.get(triggerReference);
         if (reference instanceof Trigger) {
             reference.disabled = true;
@@ -1249,7 +1307,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandDisarmmess(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandDisarmmess(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1262,7 +1320,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Possible values: 20000, 0
      */
-    private commandDoGta(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandDoGta(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1275,7 +1333,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Could be init line reference. Possible values: 579, -1
      * @param param5 Unknown parameter. Could be command line reference. Possible values: 2000, 0
      */
-    private commandDoModel(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandDoModel(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1288,7 +1346,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Possible values: 200, 400
      * @param param5 Unknown parameter. Possible values: 15000, 20000
      */
-    private commandDoRepo(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandDoRepo(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1301,7 +1359,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandDonowt(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandDonowt(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return -1;
     }
 
@@ -1314,7 +1372,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandDoorOff(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandDoorOff(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1327,7 +1385,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandDoorOn(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandDoorOn(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1340,7 +1398,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandDropOn(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandDropOn(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1353,7 +1411,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Possible values: 0, -1
      * @param param5 Unknown parameter. Always 0
      */
-    private commandDropWantedLevel(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandDropWantedLevel(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1366,7 +1424,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandDummyDriveOn(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandDummyDriveOn(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1379,7 +1437,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandDummyon(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandDummyon(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1392,7 +1450,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Could be command line reference. Possible values: 0, 10000
      */
-    private commandEnable(line: number | undefined, triggerReference: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandEnable(line: number | null, triggerReference: number, nextLine: number, param3: number, param4: number, param5: number): number {
         const reference = this.initReferences.get(triggerReference);
         if (reference instanceof Trigger) {
             reference.disabled = false;
@@ -1412,7 +1470,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Possible values: 1, 0
      * @param param5 Unknown parameter. Possible values: 50000, 0
      */
-    private commandEnd(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandEnd(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1425,7 +1483,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Possible values: 1, 3, 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandExplNoFire(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandExplNoFire(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1438,7 +1496,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandExplPed(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandExplPed(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1451,7 +1509,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Possible values: 0, 3, 2, 1
      * @param param5 Unknown parameter. Possible values: 0, 5000, 50000, 30000
      */
-    private commandExplode(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandExplode(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1464,7 +1522,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Possible values: 0, 20000
      */
-    private commandExplodeCar(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandExplodeCar(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1477,7 +1535,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always -1
      * @param param5 Unknown parameter. Always 0
      */
-    private commandFreeupCar(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandFreeupCar(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1490,7 +1548,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandFreezeEnter(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandFreezeEnter(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1503,7 +1561,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandFreezeTimed(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandFreezeTimed(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1516,7 +1574,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Possible values: 16, 24, 0
      * @param textReference: Text reference.
      */
-    private commandFrenzyBrief(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, textReference: number): number {
+    private commandFrenzyBrief(line: number | null, param1: number, nextLine: number, param3: number, param4: number, textReference: number): number {
         return nextLine;
     }
 
@@ -1529,7 +1587,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Possible values: 20000, 30000, 0
      */
-    private commandFrenzyCheck(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandFrenzyCheck(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1542,7 +1600,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Possible values: 0, -1
      * @param param5 Unknown parameter. Always 0
      */
-    private commandFrenzySet(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandFrenzySet(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1555,34 +1613,52 @@ export default class Mission {
      * @param param4 Unknown parameter. Possible values: 0, -1
      * @param param5 Unknown parameter. Could be command line reference. Possible values: 0, 10000, 1000
      */
-    private commandGeneralOnscreen(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandGeneralOnscreen(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
     /**
-     * Unknown function. Used 9 times.
+     * Reads car of a oedestrian and stores reference to a dummy object.
      * @param line Line number of command.
-     * @param param1 Unknown parameter. Could be init line reference. Possible values: 85, 209
-     * @param nextLine Next command line.
-     * @param param3 Unknown parameter. Could be command line reference. Possible values: 5015, 1023, 0, 24081
-     * @param param4 Unknown parameter. Could be init line reference. Possible values: 3240, 3100, 248, 7310, 7330, 7350, 7370, 20912, 14050
-     * @param param5 Unknown parameter. Always 0
+     * @param ped Reference to a character.
+     * @param nextLineIfTrue Next command line when character and dummy references are set.
+     * @param nextLineIfFalse Next command line when character or dummy reference are not set.
+     * @param dummy Reference to a dummy object.
+     * @param score Add to player score.
      */
-    private commandGetCarInfo(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
-        return nextLine;
+    private commandGetCarInfo(line: number | null, ped: number, nextLineIfTrue: number, nextLineIfFalse: number, dummy: number, score: number): number {
+        const pedReference = this.initReferences.get(ped);
+        const dummyReference = this.initReferences.get(dummy);
+        if ((pedReference instanceof Character) && (dummyReference instanceof Dummy)) {
+            this.game.score += score;
+            dummyReference.value = pedReference.vehicle;
+            return nextLineIfTrue;
+        }
+
+        console.error("GET_DRIVER_INFO: parameter car should point to a vehicle and dummy to a dummy.");
+        return nextLineIfFalse;
     }
 
     /**
-     * Unknown function. Used 40 times.
+     * Reads driver of a car and stores reference to a dummy object.
      * @param line Line number of command.
-     * @param param1 Unknown parameter. Could be init line reference. Possible values: 319, 277, 579, 136, 131, 212, 3280, 238, 242, 920, 950, 960, 970, 1272, 1280, 1290, 1300, 1380, 1410, 1610, 175, 240, 241, 483, 365, 1000, 2000, 13020, 13000, 13010, 13030, 13040, 15010
-     * @param nextLine Next command line.
-     * @param param3 Unknown parameter. Possible values: 0, 614, 579, 5905, 874, 6282, 6460, 3132, 3940, 4020, 4130, 4830, 5593, 5594, 5595, 5870, 6210, 6843, 243, 281, 1424, 1429, 2584, 2651, 4082, 4095, 13090, 13724, 3540, 3583, 3615, 23310, 23380, 23480, 23580, 23680, 25682, 25692
-     * @param param4 Unknown parameter. Could be init line reference. Possible values: 622, 395, 687, 3055, 131, 11865, 3300, 238, 242, 947, 950, 960, 970, 1274, 1350, 1360, 1370, 1460, 1410, 1686, 180, 240, 241, 492, 23633, 1160, 1180, 2180, 13160, 13140, 13150, 13170, 13180, 15193
-     * @param param5 Unknown parameter. Always 0
+     * @param car Reference to a vehicle.
+     * @param nextLineIfTrue Next command line when car and dummy references are set.
+     * @param nextLineIfFalse Next command line when car or dummy reference are not set.
+     * @param dummy Reference to a dummy object.
+     * @param score Add to player score.
      */
-    private commandGetDriverInfo(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
-        return nextLine;
+    private commandGetDriverInfo(line: number | null, car: number, nextLineIfTrue: number, nextLineIfFalse: number, dummy: number, score: number): number {
+        const carReference = this.initReferences.get(car);
+        const dummyReference = this.initReferences.get(dummy);
+        if ((carReference instanceof Vehicle) && (dummyReference instanceof Dummy)) {
+            this.game.score += score;
+            dummyReference.value = carReference.driver;
+            return nextLineIfTrue;
+        }
+
+        console.error("GET_DRIVER_INFO: parameter car should point to a vehicle and dummy to a dummy.");
+        return nextLineIfFalse;
     }
 
     /**
@@ -1594,7 +1670,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Possible values: 0, 1500, 2250, 3000, 100, 50
      * @param param5 Unknown parameter. Could be init line reference. Possible values: 0, 64
      */
-    private commandGoto(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandGoto(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1607,7 +1683,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 56
      * @param param5 Unknown parameter. Possible values: 50000, 0, 40000
      */
-    private commandGotoDropoff(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandGotoDropoff(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1620,7 +1696,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandHellOn(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandHellOn(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1633,7 +1709,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandHuntoff(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandHuntoff(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1646,7 +1722,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 209
      * @param param5 Unknown parameter. Always 0
      */
-    private commandHunton(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandHunton(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1659,21 +1735,29 @@ export default class Mission {
      * @param param4 Unknown parameter. Possible values: -1, 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandIncHeads(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandIncHeads(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
     /**
-     * Unknown function. Used 150 times.
+     * Increments the given counter in line <counter> by 1. After it does this, it checks to see if the counter is great than or equal to the <check> number.
      * @param line Line number of command.
-     * @param param1 Unknown parameter. Could be init line reference. Possible values: 574, 548, 549, 550, 551, 138, 575, 577, 578, 579, 580, 685, 657, 658, 659, 660, 367, 686, 689, 690, 691, 692, 3961, 3962, 3963, 3964, 9420, 9390, 3971, 3972, 3973, 3974, 9385, 1565, 1566, 1567, 5861, 5862, 5863, 5864, 5961, 5962, 5963, 5964, 23600, 24110, 24111, 24120, 24112, 24133, 24113, 24123, 24121, 24122, 24143, 24141, 24140, 24131, 24130, 24132, 24142
-     * @param nextLine Next command line.
-     * @param param3 Unknown parameter. Possible values: -1, 0
-     * @param param4 Unknown parameter. Could be command line reference. Could be init line reference. Possible values: 0, 1, -1
-     * @param param5 Unknown parameter. Always 0
+     * @param counter Counter reference.
+     * @param nextLineIfTrue Next command line if .
+     * @param nextLineIfFalse Next command line
+     * @param check Value to check against. Set to -1 if check should be skipped.
+     * @param score Add to player score.
      */
-    private commandInccount(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
-        return nextLine;
+    private commandInccount(line: number | null, counter: number, nextLineIfTrue: number, nextLineIfFalse: number, check: number, score: number): number {
+        this.game.score += score;
+        const reference = this.initReferences.get(counter);
+        if (reference instanceof Counter) {
+            reference.value += 1;
+            return ((check === -1) || (reference.value >= check)) ? nextLineIfTrue : nextLineIfFalse;
+        }
+
+        // Didn't reference a counter object. Always jump to false branch.
+        return nextLineIfFalse;
     }
 
     /**
@@ -1685,7 +1769,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Could be init line reference. Possible values: 0, -1, 85, 11800
      * @param param5 Unknown parameter. Possible values: 0, 50000, 30000, 40000, 1000
      */
-    private commandIsGoalDead(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandIsGoalDead(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1698,7 +1782,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Possible values: -1, 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandIsPedArrested(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandIsPedArrested(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1711,7 +1795,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Possible values: -1, 0, 4, 22, 5, 42, 7, 37, 3, 74, 6, 87, 82, 26, 78, 44, 35, 77, 46, 45, 65, 83, 43
      * @param param5 Unknown parameter. Possible values: 0, 5000, 10000, 15000, 1000
      */
-    private commandIsPedInCar(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandIsPedInCar(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1724,21 +1808,31 @@ export default class Mission {
      * @param param4 Unknown parameter. Possible values: 0, -1
      * @param param5 Unknown parameter. Always 0
      */
-    private commandIsPedStunned(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandIsPedStunned(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
     /**
-     * Unknown function. Used 3 times.
+     * Checks if player is in a train. If so, trains reference is saved to a dummy variable.
      * @param line Line number of command.
-     * @param param1 Unknown parameter. Could be init line reference. Possible values: 506, 223
-     * @param nextLine Next command line.
-     * @param param3 Unknown parameter. Could be command line reference. Possible values: 6120, 10120, 10860
-     * @param param4 Unknown parameter. Always 0
-     * @param param5 Unknown parameter. Always 0
+     * @param train Unknown parameter. Could be init line reference. Possible values: 506, 223
+     * @param nextLineIfTrue Next command line.
+     * @param nextLineIfFalse Unknown parameter. Could be command line reference. Possible values: 6120, 10120, 10860
+     * @param param4 Always 0
+     * @param score Add to player score.
      */
-    private commandIsPlayerOnTrain(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
-        return nextLine;
+    private commandIsPlayerOnTrain(line: number | null, train: number, nextLineIfTrue: number, nextLineIfFalse: number, param4: number, score: number): number {
+        const trainReference = this.initReferences.get(train);
+        const playerVehicle = this.game.player?.vehicle;
+        if ((!this.game.trainSystem.isWrecked) && playerVehicle && (playerVehicle.info.vtype === 8)) {
+            if (trainReference instanceof Dummy) {
+                this.game.score += score;
+                trainReference.value = playerVehicle;
+                return nextLineIfTrue;
+            }
+        }
+
+        return nextLineIfFalse;
     }
 
     /**
@@ -1750,7 +1844,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Possible values: 200, 75, 0, 2250, 2750, 3125, 2375, 2625, 1750, 2000, 2500, 2125, 3250
      * @param param5 Unknown parameter. Could be init line reference. Possible values: 0, 32
      */
-    private commandIsPowerupDone(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandIsPowerupDone(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1763,7 +1857,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Possible values: 0, -1
      * @param param5 Unknown parameter. Always 0
      */
-    private commandKeepThisProc(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandKeepThisProc(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1776,7 +1870,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Could be init line reference. Possible values: 90, 110, 125, 95, 105, 70, 80, 100, 85, 130
      * @param param5 Unknown parameter. Always 3502
      */
-    private commandKfBriefGeneral(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandKfBriefGeneral(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1789,7 +1883,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Could be init line reference. Possible values: 120, 100, 80
      * @param param5 Unknown parameter. Could be text reference. Possible values: 2502, 3502
      */
-    private commandKfBriefTimed(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandKfBriefTimed(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1802,7 +1896,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandKfCancelBriefing(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandKfCancelBriefing(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1815,7 +1909,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandKfCancelGeneral(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandKfCancelGeneral(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1828,7 +1922,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always -1
      * @param param5 Unknown parameter. Always 0
      */
-    private commandKfProcess(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandKfProcess(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1841,7 +1935,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Could be command line reference. Possible values: 0, -1, 10452
      * @param param5 Unknown parameter.
      */
-    private commandKickstart(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandKickstart(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         this.startThread(param1);
         return nextLine;
     }
@@ -1855,7 +1949,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandKillCar(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandKillCar(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1868,7 +1962,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandKillDrop(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandKillDrop(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1881,7 +1975,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Could be command line reference. Possible values: 0, 1000
      */
-    private commandKillObj(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandKillObj(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1894,7 +1988,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandKillPed(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandKillPed(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1907,7 +2001,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Possible values: -1, 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandKillProcess(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandKillProcess(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1920,7 +2014,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandKillSideProc(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandKillSideProc(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1933,7 +2027,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Could be command line reference. Could be init line reference. Possible values: 0, 1, -1, 2
      * @param param5 Unknown parameter. Possible values: 0, -1, 10000, 5000, 1000, 30000, 3000, 15000
      */
-    private commandKillSpecProc(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandKillSpecProc(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1946,7 +2040,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Could be init line reference. Possible values: 0, 16, 32, 64
      */
-    private commandLocate(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandLocate(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1959,7 +2053,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Possible values: -1, 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandLockDoor(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandLockDoor(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1972,7 +2066,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandMakeobj(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandMakeobj(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -1985,7 +2079,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param textReference Text to be shown. Reference to translation file.
      */
-    private commandMessageBrief(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, textReference: number): number {
+    private commandMessageBrief(line: number | null, param1: number, nextLine: number, param3: number, param4: number, textReference: number): number {
         return nextLine;
     }
 
@@ -1998,7 +2092,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Possible values: 0, 50000, 25000, 30000, 35000, 40000, 45000, 20000
      */
-    private commandMissionEnd(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandMissionEnd(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -2011,7 +2105,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param textReference Text to be shown. Reference to translation file.
      */
-    private commandMobileBrief(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, textReference: number): number {
+    private commandMobileBrief(line: number | null, param1: number, nextLine: number, param3: number, param4: number, textReference: number): number {
         this.game.showText(textReference, "mobile");
         return nextLine;
     }
@@ -2025,7 +2119,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Possible values: 3, 4, 2
      * @param param5 Unknown parameter. Always 0
      */
-    private commandModelHunt(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandModelHunt(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -2038,8 +2132,9 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 30
      * @param param5 Unknown parameter. Possible values: 100, 0
      */
-    private commandMphone(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
-        return nextLine;
+    private commandMphone(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): ICommandResult {
+        // TODO: Wait function: answer a phone.
+        return { lineJump: 0 };
     }
 
     /**
@@ -2051,7 +2146,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Could be command line reference. Possible values: 327, 341, 363, 479, 17717, 4008
      * @param param5 Unknown parameter. Possible values: -1, 0
      */
-    private commandNextKick(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandNextKick(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -2064,7 +2159,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandObtain(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandObtain(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -2077,7 +2172,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandOpenDoor(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandOpenDoor(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -2090,7 +2185,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param textReference Text to be shown. Reference to translation file.
      */
-    private commandPBrief(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, textReference: number): number {
+    private commandPBrief(line: number | null, param1: number, nextLine: number, param3: number, param4: number, textReference: number): number {
         return nextLine;
     }
 
@@ -2103,7 +2198,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Possible values: 18, 60, 120, 90, 80, 100, 30, 320, 440, 160, 400, 200
      * @param param5 Unknown parameter. Could be text reference. Possible values: 1500, 2502, 3502
      */
-    private commandPBriefTimed(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandPBriefTimed(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -2116,7 +2211,7 @@ export default class Mission {
      * @param respawnSquare Respawn player near garage. 0 - South, 1 - West, 2 - North, 3 - East
      * @param points. Reward player with this amount of points.
      */
-    private commandPark(line: number | undefined, reference: number, nextLine: number, dummyReference: number, respawnSquare: number, points: number): number {
+    private commandPark(line: number | null, reference: number, nextLine: number, dummyReference: number, respawnSquare: number, points: number): number {
         return nextLine;
     }
 
@@ -2129,7 +2224,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Possible values: 0, 1000
      */
-    private commandParkedOn(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandParkedOn(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -2142,7 +2237,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandParkedPixelsOn(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandParkedPixelsOn(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -2155,7 +2250,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Could be init line reference. Possible values: 252, 150, 152, 199, 271, 339, 600, 632, 135, 247, 281, 366, 1050, 7040, 14040, 16050
      * @param param5 Unknown parameter. Always 0
      */
-    private commandPedBack(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandPedBack(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -2168,7 +2263,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Possible values: 0, 147, 134, 146, 41, 139, 140, 136, 142, 137, 145, 19, 133, 33, 144, 132, 135, 138, 38, 30, 15, 143, 154, 155, 156, 170, 171, 172
      * @param param5 Unknown parameter. Could be init line reference. Possible values: 0, 85, -1, 209
      */
-    private commandPedOn(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandPedOn(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -2181,7 +2276,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandPedOutOfCar(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandPedOutOfCar(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -2194,7 +2289,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Possible values: 0, -1
      * @param param5 Unknown parameter. Always 0
      */
-    private commandPedPolice(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandPedPolice(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -2207,7 +2302,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Could be init line reference. Possible values: 249, 237, 225, 295, 622, 255, 395, 335, 687, 631, 163, 380, 390, 400, 410, 420, 425, 741, 1460, 1830, 1990, 1890, 1900, 9500, 9510, 9520, 9530, 180, 213, 5100, 5900, 492, 451, 452, 453, 454, 455, 456, 457, 458, 1160, 1180, 470, 510, 550, 590, 1020, 1080, 1090, 1100, 2060, 2070, 2080, 2090, 3000, 3020, 4000, 4010, 4020, 4030, 9000, 10000, 12050, 12060, 12070
      * @param param5 Unknown parameter. Always 0
      */
-    private commandPedSendto(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandPedSendto(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -2220,7 +2315,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Possible values: 2, 4, 3
      * @param param5 Unknown parameter. Always 0
      */
-    private commandPedWeapon(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandPedWeapon(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -2233,7 +2328,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandPixelCarOn(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandPixelCarOn(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -2246,7 +2341,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Possible values: 0, 2, 1, 3
      * @param param5 Unknown parameter. Possible values: 0, 25000, 2000, 30000
      */
-    private commandPlainExplBuilding(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandPlainExplBuilding(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -2259,7 +2354,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandPlayerAreBothOnscreen(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandPlayerAreBothOnscreen(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -2272,7 +2367,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 10000
      */
-    private commandPowerupOff(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandPowerupOff(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -2285,33 +2380,35 @@ export default class Mission {
      * @param param4 Unknown parameter. Possible values: 0, -1
      * @param param5 Unknown parameter. Always 0
      */
-    private commandPowerupOn(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandPowerupOn(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
     /**
-     * Unknown function. Used 8 times.
+     * Points a RED arrow at a given goal. This arrow will NOT be reset/removed unless a “RED_ARROW_OFF” is called.
      * @param line Line number of command.
-     * @param param1 Unknown parameter. Could be init line reference. Possible values: 304, 570, 3995, 9450, 23400
+     * @param loc Unknown parameter. Could be init line reference. Possible values: 304, 570, 3995, 9450, 23400
      * @param nextLine Next command line.
-     * @param param3 Unknown parameter. Possible values: -1, 0
-     * @param param4 Unknown parameter. Possible values: 0, -1
-     * @param param5 Unknown parameter. Always 0
+     * @param param3 Unused parameter.
+     * @param param4 Unused parameter.
+     * @param score Add to player score.
      */
-    private commandRedArrow(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandRedArrow(line: number | null, loc: number, nextLine: number, param3: number, param4: number, score: number): number {
+        this.game.score += score;
         return nextLine;
     }
 
     /**
-     * Unknown function. Used 5 times.
+     * Cancels the red arrow.
      * @param line Line number of command.
-     * @param param1 Unknown parameter. Always 0
+     * @param param1 Unused parameter.
      * @param nextLine Next command line.
-     * @param param3 Unknown parameter. Possible values: 0, -1
-     * @param param4 Unknown parameter. Possible values: 0, -1
-     * @param param5 Unknown parameter. Always 0
+     * @param param3 Unused parameter.
+     * @param param4 Unused parameter.
+     * @param score Add to player score.
      */
-    private commandRedArrowOff(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandRedArrowOff(line: number | null, param1: number, nextLine: number, param3: number, param4: number, score: number): number {
+        this.game.score += score;
         return nextLine;
     }
 
@@ -2324,7 +2421,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Possible values: 136, 140, 145, 144, 147, 138, 134
      * @param param5 Unknown parameter. Always 0
      */
-    private commandRemapPed(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandRemapPed(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -2337,7 +2434,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Possible values: 0, -1
      * @param param5 Unknown parameter. Possible values: 0, -1
      */
-    private commandReset(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandReset(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -2350,7 +2447,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Possible values: -1, 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandResetKf(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandResetKf(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -2363,7 +2460,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandResetWithBriefs(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandResetWithBriefs(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -2376,7 +2473,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandReturnControl(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandReturnControl(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -2389,7 +2486,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandScoreCheck(line: number | undefined, scoreToCheck: number, nextLineIfTrue: number, nextLineIfFalse: number, param4: number, param5: number): number {
+    private commandScoreCheck(line: number | null, scoreToCheck: number, nextLineIfTrue: number, nextLineIfFalse: number, param4: number, param5: number): number {
         return this.game.score < scoreToCheck ? nextLineIfFalse : nextLineIfTrue;
     }
 
@@ -2402,7 +2499,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Could be init line reference. Possible values: 217, 376, 377, 378, 218, 618, 619, 621, 282, 283, 284, 393, 587, 584, 585, 586, 3047, 132, 3730, 225, 250, 1400, 1430, 1631, 179, 275, 276, 277, 278, 485, 372, 1010, 2040, 14020, 15020
      * @param param5 Unknown parameter. Always 0
      */
-    private commandSendto(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandSendto(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -2415,7 +2512,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Could be command line reference. Possible values: 1047, 1034, 5591, 2621, 6085, 7042, 7134, 7234, 7334, 8442, 3275, 17053, 25252, 26255
      * @param param5 Unknown parameter. Always 1
      */
-    private commandSetKilltrig(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandSetKilltrig(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -2428,7 +2525,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandSetNoCollide(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandSetNoCollide(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -2441,7 +2538,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Possible values: 3, 4, 2
      * @param param5 Unknown parameter. Always 0
      */
-    private commandSetPedSpeed(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandSetPedSpeed(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -2454,7 +2551,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Could be command line reference. Possible values: 4, 0, 6, 1, 2
      * @param param5 Unknown parameter. Possible values: 0, 20000, 25000, 15000, 40000
      */
-    private commandSetbomb(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandSetbomb(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -2467,7 +2564,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Could be init line reference. Possible values: 190, 263
      * @param param5 Unknown parameter. Always 0
      */
-    private commandSetupRepo(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandSetupRepo(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -2480,7 +2577,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param textReference Text to be shown. Reference to translation file.
      */
-    private commandSpeechBrief(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, textReference: number): number {
+    private commandSpeechBrief(line: number | null, param1: number, nextLine: number, param3: number, param4: number, textReference: number): number {
         this.game.showText(textReference, "mouth");
         return nextLine;
     }
@@ -2494,7 +2591,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Could be init line reference. Possible values: 579, -1
      * @param param5 Unknown parameter. Could be init line reference. Possible values: 3, 100, 5
      */
-    private commandStartModel(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandStartModel(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -2507,7 +2604,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandStartup(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandStartup(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         this.commandDisable(line, param1, 0, 0, 0, 0);
         this.game.playSound("intro");
         return nextLine;
@@ -2516,14 +2613,20 @@ export default class Mission {
     /**
      * Waits until user get in a car.
      * @param line Line number of command.
-     * @param carReference to a car.
-     * @param nextLine Next command line.
-     * @param param3 Unknown parameter. Could be command line reference. Possible values: -1, 0, 6065, 2410, 2420, 2430
-     * @param param4 Unknown parameter. Could be init line reference. Possible values: 0, 100, 200, 3000
-     * @param points Points to give the player.
+     * @param car Reference to a car.
+     * @param nextLineWhenStolen Next command line after player has stolen a car.
+     * @param nextLineWhenTimeout Next command line if user fails to steal the car within time limit.
+     * @param timer Timer to steal the car. Frames? If timer is set to 0 there is no time limit.
+     * @param score Add to player score.
      */
-    private commandSteal(line: number | undefined, carReference: number, nextLine: number, param3: number, param4: number, points: number): number {
-        return nextLine;
+    private commandSteal(line: number | null, car: number, nextLineWhenStolen: number, nextLineWhenTimeout: number, timer: number, score: number): ICommandResult {
+        const reference = this.initReferences.get(car);
+        if (reference instanceof Vehicle) {
+            // TODO: Wait function
+            return { lineJump: 0 };
+        }
+
+        return { commandReference: nextLineWhenTimeout }
     }
 
     /**
@@ -2535,21 +2638,27 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandStopFrenzy(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandStopFrenzy(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
     /**
-     * Waits for a given amount of ticks.
+     * Waits for <timer> and it goes to <succ>.
      * @param line Line number of command.
-     * @param param1 Unknown parameter. Possible values: 0, 100
+     * @param param1 Unused parameter.
      * @param nextLine Next command line.
-     * @param param3 Unknown parameter. Possible values: 30, 0, 892, 1200, -1, 8010, 280, 50, 4320, 5004, 10, 9500, 600, 900
-     * @param time Ticks to wait.
-     * @param money Get money when wait expires.
+     * @param param3 Unused parameter.
+     * @param timer Frames to wait.
+     * @param score Add to player score.
      */
-    private commandSurvive(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, money: number): number {
-        return nextLine;
+    private commandSurvive(line: number | null, param1: number, nextLine: number, param3: number, timer: number, score: number): ICommandResult {
+        let waitTime = timer * FramesPerSecond;
+        let waitFunction = (_: Game, time: number) => {
+            waitTime -= time;
+            return waitTime <= 0;
+        };
+
+        return { waitFunction, commandReference: nextLine, score };
     }
 
     /**
@@ -2561,7 +2670,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Possible values: 200, 242
      * @param param5 Unknown parameter. Possible values: 50000, 0
      */
-    private commandThrow(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandThrow(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -2574,7 +2683,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandUnfreezeEnter(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandUnfreezeEnter(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -2587,7 +2696,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Possible values: -1, 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandUnlockDoor(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandUnlockDoor(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -2600,7 +2709,7 @@ export default class Mission {
      * @param param4 Unknown parameter. Could be init line reference. Possible values: 249, 237, 225, 295, 622, 255, 395, 335, 687, 631, 163, 1460, 1990, 1890, 1900, 180, 213, 5100, 5900, 492, 1160, 1180, 470, 510, 550, 590, 1020, 2060, 2070, 2080, 2090, 3000, 3020, 4000, 4010, 4020, 4030, 9000, 10000, 12050, 12060, 12070
      * @param param5 Unknown parameter. Always 0
      */
-    private commandWaitForPed(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandWaitForPed(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
@@ -2613,24 +2722,32 @@ export default class Mission {
      * @param param4 Unknown parameter. Always 0
      * @param param5 Unknown parameter. Always 0
      */
-    private commandWaitForPlayers(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandWaitForPlayers(line: number | null, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
         return nextLine;
     }
 
     /**
-     * Unknown function. Used 2 times.
+     * Wrecks a train.
      * @param line Line number of command.
-     * @param param1 Unknown parameter. Could be init line reference. Possible values: 506, 223
+     * @param train Reference to a dummy object, that has a train reference set.
      * @param nextLine Next command line.
-     * @param param3 Unknown parameter. Always -1
-     * @param param4 Unknown parameter. Always -1
-     * @param param5 Unknown parameter. Possible values: 50000, 0
+     * @param param3 Always -1
+     * @param param4 Always -1
+     * @param score Add to player score.
      */
-    private commandWreckATrain(line: number | undefined, param1: number, nextLine: number, param3: number, param4: number, param5: number): number {
+    private commandWreckATrain(line: number | null, train: number, nextLine: number, param3: number, param4: number, score: number): number {
+        const trainReference = this.initReferences.get(train);
+        if ((!this.game.trainSystem.isWrecked) && (trainReference instanceof Dummy) && (trainReference.value instanceof Vehicle) && (trainReference.value.info.vtype === 8)) {
+            this.game.score += score;
+            console.error("Not implemented: Blow up a train.");
+            this.game.trainSystem.isWrecked = true;
+        }
+
         return nextLine;
     }
 }
 
+/** Counter contains a numeric value, and possible trigger. */
 class Counter {
     private currentValue: number;
 
@@ -2652,8 +2769,18 @@ class Counter {
     }
 }
 
+/** Dummy object doesn't really do anything. It just contains a some value. */
+class Dummy {
+    public value: unknown = null;
+}
+
 class Thread {
     public pointer: number = 0;
+    public keepThisThread: boolean = false;
+
+    public parent: Thread | null = null;
+
+    public readonly children: Thread[] = [];
 
     public stop() {
 
@@ -2664,4 +2791,21 @@ interface ICoordinates {
     readonly x: number;
     readonly y: number;
     readonly z: number;
+}
+
+interface ICommandResult {
+    /** Jumps forward (backward if negative) a specific number of rows. */
+    lineJump?: number;
+
+    /** Jumps to a numbered command row. */
+    commandReference?: number;
+
+    /** True if current thread should be ended. */
+    exitThread?: true;
+
+    /** Function to return true before code can continue. */
+    waitFunction?: (game: Game, time: number) => boolean;
+    
+    /** Add to player score. */
+    score?: number;
 }

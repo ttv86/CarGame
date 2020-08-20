@@ -1,5 +1,5 @@
 import Entity from "../Entity";
-import { IRenderer } from "../Rendering/WebGlRenderer";
+import { IRenderer } from "../Rendering/WebGlCityRenderer";
 import Style from "../DataReaders/Style";
 import Font from "../DataReaders/Font";
 import Sprite from "../Sprite";

@@ -1,7 +1,7 @@
 import { Point } from "../Types";
 import GameMap from "../DataReaders/GameMap";
 import Style from "../DataReaders/Style";
-import WebGlRenderer from "./WebGlRenderer";
+import WebGlRenderer from "./WebGlCityRenderer";
 import Model, { IModelData } from "./Model";
 import { count } from "console";
 

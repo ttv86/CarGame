@@ -8,11 +8,11 @@ export default class Font {
 
     constructor(data: DataView) {
         const reader = new BinaryReader(data);
-        const charCount = reader.readUint8();
+        this.charCount = reader.readUint8();
         const charHeight = reader.readUint8();
 
         const charData: {width: number, data: number[]}[] = [];
-        for (let i = 0; i < charCount; i++) {
+        for (let i = 0; i < this.charCount; i++) {
             const width = reader.readUint8();
             const data = reader.readBytes(width * charHeight);
             charData.push({ width, data });
@@ -29,7 +29,7 @@ export default class Font {
         const size = findSize(charHeight + 1, charData.map(x => x.width + 1));
         const imageData = new Uint8ClampedArray(size * size * 4);
 
-        const chars = charCount <= 11 ? numbers : letters;
+        const chars = this.charCount <= 11 ? numbers : letters;
         let x2 = 0;
         let y2 = 0;
         let charIndex = 0;
@@ -73,6 +73,7 @@ export default class Font {
     }
 
     public readonly height: number;
+    public readonly charCount: number;
     public readonly fontCanvas: HTMLCanvasElement;
 
     public getTextInfo(text: string): { widths: readonly number[], textureCoords: readonly number[] } {

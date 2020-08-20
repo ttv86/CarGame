@@ -1,7 +1,8 @@
-import WebGlRenderer, { ITextBufferOptions } from "./WebGlRenderer";
+import WebGlCityRenderer, { ITextBufferOptions, IRenderer } from "./WebGlCityRenderer";
 import Font from "../DataReaders/Font";
 import { HorizontalAlign, VerticalAlign } from "../Types";
 import Model from "./Model";
+import { IBaseRenderer } from "./WebGlBaseRenderer";
 
 export default class TextBuffer implements ITextBuffer {
     private font: Font;
@@ -17,7 +18,7 @@ export default class TextBuffer implements ITextBuffer {
 
     public readonly model: Model;
 
-    constructor(renderer: WebGlRenderer, font: Font, x: number, y: number, width: number, height: number, options?: ITextBufferOptions) {
+    constructor(renderer: IBaseRenderer, font: Font, x: number, y: number, width: number, height: number, options?: ITextBufferOptions) {
         this.font = font;
         this.x = x;
         this.y = y;
@@ -51,7 +52,7 @@ export default class TextBuffer implements ITextBuffer {
                 }
 
                 const w = widths[i];
-                if (left < w) {
+                if ((left < w) || (text.charAt(i) === "\n")) {
                     const thisPos = (previousPossibleSplit ?? i) + 1;
                     splits.push(thisPos);
                     i = thisPos;
@@ -59,6 +60,14 @@ export default class TextBuffer implements ITextBuffer {
                     left = this.width;
                 } else {
                     left -= w;
+                }
+            }
+        } else {
+            for (let i = 0; i < widths.length; i++) {
+                if (text.charAt(i) === "\n") {
+                    const thisPos = i + 1;
+                    splits.push(thisPos);
+                    i = thisPos;
                 }
             }
         }

@@ -1,6 +1,6 @@
 import Entity from "../Entity";
 import Style, { ICarInfo } from "../DataReaders/Style";
-import { IRenderer } from "../Rendering/WebGlRenderer";
+import { IRenderer } from "../Rendering/WebGlCityRenderer";
 import Character from "./Character";
 import Game from "../Game";
 
@@ -91,6 +91,7 @@ export default class Vehicle extends Entity {
 
     public currentSpeed: number;
     public info: ICarInfo;
+    public driver: Character | null = null;
     public charactersInVehicle: Character[] = [];
 
     public hitTest(x: number, y: number, z: number): boolean {
