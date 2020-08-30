@@ -1,9 +1,10 @@
-import { BinaryReader } from "./BinaryReader";
+import { BinaryReader } from "../BinaryReader";
+import { IFont } from "../Interfaces";
 
 const letters = [33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 32, 192, 193, 194, 196, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 210, 211, 212, 214, 217, 218, 219, 220, 223, 224, 225, 226, 228, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 242, 243, 244, 246, 249, 250, 251, 252];
 const numbers = [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 120];
 
-export default class Font {
+export default class Font implements IFont {
     private coords = new Map<string, ICoords>();
 
     constructor(data: DataView) {
@@ -67,13 +68,16 @@ export default class Font {
             throw new Error("Failed to get context");
         }
 
-        context.putImageData(new ImageData(imageData, size), 0, 0);
+        this.fontImageData = new ImageData(imageData, size);
+        context.putImageData(this.fontImageData, 0, 0);
+
         this.fontCanvas = canvas;
         this.height = charHeight;
     }
 
     public readonly height: number;
     public readonly charCount: number;
+    public readonly fontImageData: ImageData;
     public readonly fontCanvas: HTMLCanvasElement;
 
     public getTextInfo(text: string): { widths: readonly number[], textureCoords: readonly number[] } {

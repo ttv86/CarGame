@@ -1,7 +1,6 @@
 import Entity from "../Entity";
 import { IRenderer } from "../Rendering/WebGlCityRenderer";
-import Style from "../DataReaders/Style";
-import Font from "../DataReaders/Font";
+import { IStyle, IFont } from "../DataReaders/Interfaces";
 import Sprite from "../Sprite";
 import { ITextBuffer } from "../Rendering/TextBuffer";
 import Game from "../Game";
@@ -11,7 +10,7 @@ export default class LocationInfo extends Entity {
     private time: number = 0;
     private textBuffer: ITextBuffer;
 
-    constructor(game: Game, renderer: IRenderer, style: Style, font: Font) {
+    constructor(game: Game, renderer: IRenderer, style: IStyle, font: IFont) {
         super(game, renderer, style, 25, 0, 0, 0);
         this.rightSide = new Sprite(renderer, style, 26, 220, 0);
         this.textBuffer = renderer.createTextBuffer(0, 0, 440, 30, font, { horizontalAlign: "middle", verticalAlign: "middle" });

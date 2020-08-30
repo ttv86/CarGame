@@ -1,11 +1,11 @@
 import WebGlCityRenderer, { ITextBufferOptions, IRenderer } from "./WebGlCityRenderer";
-import Font from "../DataReaders/Font";
+import { IFont } from "../DataReaders/Interfaces";
 import { HorizontalAlign, VerticalAlign } from "../Types";
 import Model from "./Model";
 import { IBaseRenderer } from "./WebGlBaseRenderer";
 
 export default class TextBuffer implements ITextBuffer {
-    private font: Font;
+    private font: IFont;
     private x: number;
     private y: number;
     private width: number;
@@ -18,7 +18,7 @@ export default class TextBuffer implements ITextBuffer {
 
     public readonly model: Model;
 
-    constructor(renderer: IBaseRenderer, font: Font, x: number, y: number, width: number, height: number, options?: ITextBufferOptions) {
+    constructor(renderer: IBaseRenderer, font: IFont, x: number, y: number, width: number, height: number, options?: ITextBufferOptions) {
         this.font = font;
         this.x = x;
         this.y = y;
@@ -30,7 +30,7 @@ export default class TextBuffer implements ITextBuffer {
 
         this.model = renderer.createTextModel({
             positions: [],
-            texture: this.font.fontCanvas,
+            texture: this.font.fontImageData,
             center: { x: 0, y: 0 },
             indices: [],
             textureCoords: [],

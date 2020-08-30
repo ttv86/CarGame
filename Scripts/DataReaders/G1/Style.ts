@@ -1,6 +1,14 @@
-import { BinaryReader } from "./BinaryReader";
+import { BinaryReader } from "../BinaryReader";
+import { IStyle, IWall, IVehicleInfo, VehicleType, ILid } from "../Interfaces";
+import GameMap from "./GameMap";
 
-export default class Style {
+const margin = 2;
+const tileSize = 64;
+const tileSizeWithMargin = tileSize + margin + margin;
+const tileTextureSize = 80 * 40; // NOTE: should this be square of 2?
+const tilesPerRow = Math.floor(tileTextureSize / tileSizeWithMargin);
+
+export default class Style implements IStyle {
     private spriteInfo = new Map<number, ISpriteLocation>();
 
     constructor(data: DataView) {
@@ -64,8 +72,8 @@ export default class Style {
         const spriteInfo = this.readSpriteInfo(reader, spriteInfoSize);
         const spriteGraphics = reader.readBytes(spriteGraphicsSize);
 
-        this.spriteCanvas = this.generateSprites(spriteGraphics, spriteInfo, paletteContainer);
-        this.generateTiles(tileData, this.sideTiles, this.lidTiles, this.auxTiles, paletteContainer);
+        this.spriteImageData = this.generateSprites(spriteGraphics, spriteInfo, paletteContainer);
+        this.tileImageData = this.generateTiles(tileData, this.sideTiles, this.lidTiles, this.auxTiles, paletteContainer);
     }
 
     public readonly sideTiles: number;
@@ -84,10 +92,35 @@ export default class Style {
 
     public readonly animationInfos: readonly IAnimationInfo[] = [];
 
-    public readonly spriteCanvas: HTMLCanvasElement;
-
     public spritePosition(spriteIndex: number): ISpriteLocation | null {
         return this.spriteInfo.get(spriteIndex) ?? null;
+    }
+
+    public readonly tileImageData: HTMLCanvasElement;
+    public readonly spriteImageData: HTMLCanvasElement;
+
+    public getVehicleInfo(model: number): IVehicleInfo {
+        return null!;
+    }
+
+    public getVehicleModelByType(type: VehicleType): number | null {
+        return null;
+    }
+
+    public getLidTileTexCoords(lid: ILid): ITextureLocation {
+        const tileIndex = (this.sideTiles + lid.tileIndex) * 4 + lid.lightLevel;
+        const x = ((tileIndex % tilesPerRow) * tileSizeWithMargin + margin) / tileTextureSize;
+        const y = (Math.floor(tileIndex / tilesPerRow) * tileSizeWithMargin + margin) / tileTextureSize;
+
+        return { tX: x, tY: y, tW: tileSize / tileTextureSize, tH: tileSize / tileTextureSize };
+    }
+
+    public getSideTileTexCoords(wall: IWall): ITextureLocation {
+        const tileIndex = wall.tileIndex * 4;
+        const x = ((tileIndex % tilesPerRow) * tileSizeWithMargin + margin) / tileTextureSize;
+        const y = (Math.floor(tileIndex / tilesPerRow) * tileSizeWithMargin + margin) / tileTextureSize;
+
+        return { tX: x, tY: y, tW: tileSize / tileTextureSize, tH: tileSize / tileTextureSize };
     }
 
     private readAnimations(reader: BinaryReader, animSize: number): readonly IAnimationInfo[] {
@@ -260,7 +293,19 @@ export default class Style {
         }
     }
 
-    private generateTiles(tileData: readonly number[], sideTileCount: number, lidTileCount: number, auxTileCount: number, paletteContainer: PaletteContainer) {
+    private generateTiles(tileData: readonly number[], sideTileCount: number, lidTileCount: number, auxTileCount: number, paletteContainer: PaletteContainer): HTMLCanvasElement {
+        const bigTexture = document.createElement("canvas");
+        bigTexture.width = tileTextureSize;
+        bigTexture.height = tileTextureSize;
+        const bigContext = bigTexture.getContext("2d");
+        if (!bigContext) {
+            throw new Error(":(");
+        }
+
+        bigContext.imageSmoothingEnabled = false;
+        bigContext.fillStyle = "rgb(0,0,0,0.0)";
+        bigContext.fillRect(0, 0, tileTextureSize, tileTextureSize);
+
         const tiles = tileData.length >> 12;
         const remapTiles = ((sideTileCount + lidTileCount + auxTileCount) * 4);
         const imageDataList: Uint8ClampedArray[] = [];
@@ -294,9 +339,44 @@ export default class Style {
             }
         }
 
+        let i = 0;
         for (const imageData of imageDataList) {
-            this.tiles.push(new ImageData(imageData, 64));
+            const data = new ImageData(imageData, tileSize);
+            const x = (i % tilesPerRow) * tileSizeWithMargin + margin;
+            const y = Math.floor(i / tilesPerRow) * tileSizeWithMargin + margin;
+            bigContext.putImageData(data, x, y);
+
+            if (margin > 0) {
+                // Add some similar content around texture, so image smoothing doesn't mess with edges.
+                bigContext.drawImage(bigTexture,
+                    x, y, tileSize, 1,
+                    x - margin, y - margin, tileSize + margin + margin, margin);
+                bigContext.drawImage(bigTexture,
+                    x, y, 1, tileSize,
+                    x - margin, y, margin, tileSize);
+
+                bigContext.drawImage(bigTexture,
+                    x, y + tileSize - 1, tileSize, 1,
+                    x - margin, y + tileSize, tileSize + margin + margin, margin);
+                bigContext.drawImage(bigTexture,
+                    x + tileSize - 1, y, 1, tileSize,
+                    x + tileSize, y, margin, tileSize);
+            }
+
+            i++;
         }
+
+        //let image = document.createElement("img");
+        //image.src = bigTexture.toDataURL();
+        //image.style.position = "fixed";
+        //image.style.left = "0";
+        //image.style.top = "0";
+        ////image.style.height = "100vh";
+        //image.style.height = `${tileTextureSize * 4}px`;
+        //image.style.border = "1px solid black";
+        //document.body.appendChild(image);
+
+        return bigTexture;
     }
 
     private generateSprites(spriteData: readonly number[], spriteInfo: readonly ISpriteInfo[], paletteContainer: PaletteContainer): HTMLCanvasElement {
@@ -374,6 +454,100 @@ export default class Style {
 
         return canvas;
     }
+
+    ////private generateTileCanvas(map: GameMap) {
+    ////    const bigTexture = document.createElement("canvas");
+    ////    bigTexture.width = 2048;
+    ////    bigTexture.height = 2048;
+    ////    const bigContext = bigTexture.getContext("2d");
+    ////    if (!bigContext) {
+    ////        throw new Error(":(");
+    ////    }
+
+    ////    bigContext.fillStyle = "rgb(0,0,0,0.0)";
+    ////    bigContext.fillRect(0, 0, 2048, 2048);
+
+    ////    const tileIndexes = new Map<string, number>();
+    ////    for (let x = 0; x < 256; x++) {
+    ////        for (let y = 0; y < 256; y++) {
+    ////            for (let z = 0; z < 6; z++) {
+    ////                const block = map.getBlock(x, y, z);
+    ////                if (block != null) {
+    ////                    if (block.lid.tileIndex > 0) {
+    ////                        const key = `L${block.lid}/${block.lid.lightLevel}`;
+    ////                        if (!tileIndexes.has(key)) {
+    ////                            tileIndexes.set(key, (this.sideTiles + block.lid.tileIndex) * 4 + block.lid.lightLevel);
+    ////                        }
+    ////                    }
+
+    ////                    if (block.bottom.tileIndex > 0) {
+    ////                        const key = `S${block.bottom}`;
+    ////                        if (!tileIndexes.has(key)) {
+    ////                            tileIndexes.set(key, block.bottom.tileIndex * 4);
+    ////                        }
+    ////                    }
+
+    ////                    if (block.top.tileIndex > 0) {
+    ////                        const key = `S${block.top}`;
+    ////                        if (!tileIndexes.has(key)) {
+    ////                            tileIndexes.set(key, block.top.tileIndex * 4);
+    ////                        }
+    ////                    }
+
+    ////                    if (block.left.tileIndex > 0) {
+    ////                        const key = `S${block.left}`;
+    ////                        if (!tileIndexes.has(key)) {
+    ////                            tileIndexes.set(key, block.left.tileIndex * 4);
+    ////                        }
+    ////                    }
+
+    ////                    if (block.right.tileIndex > 0) {
+    ////                        const key = `S${block.right}`;
+    ////                        if (!tileIndexes.has(key)) {
+    ////                            tileIndexes.set(key, block.right.tileIndex * 4);
+    ////                        }
+    ////                    }
+    ////                }
+    ////            }
+    ////        }
+    ////    }
+
+    ////    const tilesPerRow = 20;
+    ////    const multiplier = 2048 / tilesPerRow;
+    ////    const margin = (multiplier - 64) / 2
+    ////    const helperCanvas = document.createElement("canvas");
+    ////    helperCanvas.width = 64;
+    ////    helperCanvas.height = 64;
+    ////    const helperContext = helperCanvas.getContext("2d")!;
+    ////    const values = [...tileIndexes.values()];
+    ////    for (let i = 0; i < values.length; i++) {
+    ////        const imageData = this.tiles[values[i]];
+    ////        helperContext.putImageData(imageData, 0, 0);
+    ////        const x = margin + Math.floor(i % tilesPerRow) * multiplier;
+    ////        const y = margin + Math.floor(i / tilesPerRow) * multiplier;
+    ////        if (margin > 0) {
+    ////            bigContext.drawImage(helperCanvas, 0, 0, 1, 1, x - margin, y - margin, margin, margin);
+    ////            bigContext.drawImage(helperCanvas, 63, 0, 1, 1, x + 64, y - margin, margin, margin);
+    ////            bigContext.drawImage(helperCanvas, 0, 63, 1, 1, x - margin, y + 64, margin, margin);
+    ////            bigContext.drawImage(helperCanvas, 63, 63, 1, 1, x + 64, y + 64, margin, margin);
+
+    ////            bigContext.drawImage(helperCanvas, 0, 0, 64, 1, x, y - margin, 64, margin);
+    ////            bigContext.drawImage(helperCanvas, 0, 0, 1, 64, x - margin, y, margin, 64);
+    ////            bigContext.drawImage(helperCanvas, 0, 63, 64, 1, x, y + 64, 64, margin + 1);
+    ////            bigContext.drawImage(helperCanvas, 63, 0, 1, 64, x + 64, y, margin + 1, 64);
+    ////        }
+
+    ////        bigContext.drawImage(helperCanvas, x, y);
+    ////    }
+
+    ////    //const image = document.createElement("img");
+    ////    //image.src = bigTexture.toDataURL();
+    ////    //image.style.position = "fixed";
+    ////    //image.style.left = "0";
+    ////    //image.style.top = "0";
+    ////    //image.style.height = "100vh";
+    ////    //document.body.appendChild(image);
+    ////}
 }
 
 class PaletteContainer {
@@ -530,7 +704,7 @@ interface IObjectInfo {
     into: readonly number[];
 }
 
-export interface ISpriteLocation {
+export interface ITextureLocation {
     /** Texture x. */
     tX: number;
     /** Texture y. */
@@ -539,7 +713,9 @@ export interface ISpriteLocation {
     tW: number;
     /** Texture height. */
     tH: number;
+}
 
+export interface ISpriteLocation extends ITextureLocation {
     /** Sprite width. */
     width: number;
 

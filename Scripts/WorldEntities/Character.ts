@@ -1,6 +1,6 @@
 import Entity from "../Entity";
 import { IRenderer } from "../Rendering/WebGlCityRenderer";
-import Style from "../DataReaders/Style";
+import { IStyle } from "../DataReaders/Interfaces";
 import Vehicle from "./Vehicle";
 import Game from "../Game";
 
@@ -9,7 +9,7 @@ const turnSpeed = Math.PI; // 3.14 radian (180deg) per second.
 
 /** People in game world. Player, police, pedestrians, etc... */
 export default class Character extends Entity {
-    constructor(game: Game, renderer: IRenderer, style: Style, x: number, y: number, z: number, facing: number) {
+    constructor(game: Game, renderer: IRenderer, style: IStyle, x: number, y: number, z: number, facing: number) {
         super(game, renderer, style, 743, x, y, z);
         this.rotation = facing;
     }

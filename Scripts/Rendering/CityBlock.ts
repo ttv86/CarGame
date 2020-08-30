@@ -1,9 +1,7 @@
 import { Point } from "../Types";
-import GameMap from "../DataReaders/GameMap";
-import Style from "../DataReaders/Style";
+import { IGameMap, IStyle } from "../DataReaders/Interfaces";
 import WebGlRenderer from "./WebGlCityRenderer";
 import Model, { IModelData } from "./Model";
-import { count } from "console";
 
 export default class CityBlock {
     private readonly animEnabled: boolean = false;
@@ -13,22 +11,35 @@ export default class CityBlock {
     private readonly solidModel: Model | null = null;
     private readonly flatTextureCoords: number[] = [];
     private readonly solidTextureCoords: number[] = [];
-    private readonly style: Style;
+    private readonly style: IStyle;
     private readonly tileSize: number;
     private readonly margin: number;
     private readonly multiplier: number;
     private readonly tilesPerRow: number;
 
-    constructor(renderer: WebGlRenderer, map: GameMap, style: Style, blockSize: number, margin: number, tilesPerRow: number, xx: number, yy: number, tileSize: number, multiplier: number, bigTexture: HTMLCanvasElement, tileIndexes: Map<string, number>) {
+    constructor(
+        renderer: WebGlRenderer,
+        map: IGameMap,
+        style: IStyle,
+        blockSize: number,
+        margin: number,
+        tilesPerRow: number,
+        xx: number,
+        yy: number,
+        tileSize_unused: number,
+        multiplier: number,
+        bigTexture: HTMLCanvasElement | HTMLImageElement | ImageData,
+        tileIndexes_unused: Map<string, number>) {
+
         this.style = style;
-        this.tileSize = tileSize;
+        this.tileSize = Number.NaN;
         this.margin = margin;
         this.multiplier = multiplier;
         this.tilesPerRow = tilesPerRow;
 
-        const animLidBlocks = style.animationInfos.filter(x => x.which === 1).map(x => x.block);
-        const animSideBlocks = style.animationInfos.filter(x => x.which === 0).map(x => x.block);
-        const keys = [...tileIndexes.keys()];
+        const animLidBlocks: number[] = []; // TODO: style.animationInfos.filter(x => x.which === 1).map(x => x.block);
+        const animSideBlocks: number[] = []; // TODO: style.animationInfos.filter(x => x.which === 0).map(x => x.block);
+        //const keys = [...tileIndexes.keys()];
 
         for (let f = 0; f < 2; f++) {
             let animTexCoords: number[] = [];
@@ -43,16 +54,17 @@ export default class CityBlock {
 
             for (let y = yy; y < yy + blockSize; y++) {
                 for (let x = xx; x < xx + blockSize; x++) {
+                    if (x == 104 && y === 118) {
+                        "".toString();
+                    }
+
                     for (let i = 0; i < 6; i++) {
-                        const block = map.blocks[clamp(x, 0, 255)][clamp(y, 0, 255)][i];
+                        const block = map.getBlock(x, y, i);
                         if (!block) {
                             continue;
                         }
 
-                        if (block.flat !== (f === 1)) {
-                            continue;
-                        }
-
+                        const transparentPass = f === 1;
                         const topNorthWest: Point = [(x) * 64, (y) * 64, (i) * 64];
                         const topNorthEast: Point = [(x + 1) * 64, (y) * 64, (i) * 64];
                         const topSouthWest: Point = [(x) * 64, (y + 1) * 64, (i) * 64];
@@ -64,8 +76,8 @@ export default class CityBlock {
 
                         adjustSlope(block.slope, topNorthWest, topNorthEast, topSouthWest, topSouthEast);
 
-                        if (block.lid) {
-                            if (animLidBlocks.indexOf(block.lid) > -1) {
+                        if (block.lid && (block.lid.transparent === transparentPass)) {
+                            if (animLidBlocks.indexOf(block.lid.tileIndex) > -1) {
                                 animTexCoords.push(modelData.textureCoords.length);
                             }
 
@@ -75,51 +87,50 @@ export default class CityBlock {
                                 ...topNorthEast,
                                 ...topSouthWest,
                                 ...topSouthEast);
-                            const tileIndex = keys.indexOf(`L${block.lid}/${block.remap}`);
-                            const tileX = (margin + Math.floor(tileIndex % tilesPerRow) * multiplier) / 2048;
-                            const tileY = (margin + Math.floor(tileIndex / tilesPerRow) * multiplier) / 2048;
-                            switch (block.lidRotation) {
+
+                            const { tX, tY, tW, tH } = style.getLidTileTexCoords(block.lid);
+                            switch (block.lid.rotate) {
                                 case 0:
                                 default:
                                     modelData.textureCoords.push(
-                                        tileX, tileY,
-                                        tileX + tileSize, tileY,
-                                        tileX, tileY + tileSize,
-                                        tileX + tileSize, tileY + tileSize);
+                                        tX, tY,
+                                        tX + tW, tY,
+                                        tX, tY + tH,
+                                        tX + tW, tY + tH);
                                     break;
                                 case 1:
                                     modelData.textureCoords.push(
-                                        tileX, tileY + tileSize,
-                                        tileX, tileY,
-                                        tileX + tileSize, tileY + tileSize,
-                                        tileX + tileSize, tileY);
+                                        tX, tY + tH,
+                                        tX, tY,
+                                        tX + tW, tY + tH,
+                                        tX + tW, tY);
                                     break;
                                 case 2:
                                     modelData.textureCoords.push(
-                                        tileX + tileSize, tileY + tileSize,
-                                        tileX, tileY + tileSize,
-                                        tileX + tileSize, tileY,
-                                        tileX, tileY);
+                                        tX + tW, tY + tH,
+                                        tX, tY + tH,
+                                        tX + tW, tY,
+                                        tX, tY);
                                     break;
                                 case 3:
                                     modelData.textureCoords.push(
-                                        tileX + tileSize, tileY,
-                                        tileX + tileSize, tileY + tileSize,
-                                        tileX, tileY,
-                                        tileX, tileY + tileSize);
+                                        tX + tW, tY,
+                                        tX + tW, tY + tH,
+                                        tX, tY,
+                                        tX, tY + tH);
                                     break;
                             }
 
                             modelData.indices.push(start + 0, start + 1, start + 2, start + 3, start + 2, start + 1);
                         }
 
-                        if (block.bottom) {
-                            if (animSideBlocks.indexOf(block.bottom) > -1) {
+                        if (block.bottom && (block.bottom.transparent === transparentPass)) {
+                            if (animSideBlocks.indexOf(block.bottom.tileIndex) > -1) {
                                 animTexCoords.push(modelData.textureCoords.length);
                             }
 
                             const start = modelData.positions.length / 3;
-                            if (block.flat) {
+                            if (block.bottom.transparent) {
                                 modelData.positions.push(
                                     ...topNorthWest,
                                     ...topNorthEast,
@@ -133,33 +144,31 @@ export default class CityBlock {
                                     ...bottomSouthEast);
                             }
 
-                            const tileIndex = keys.indexOf(`S${block.bottom}`);
-                            const tileX = (margin + Math.floor(tileIndex % tilesPerRow) * multiplier) / 2048;
-                            const tileY = (margin + Math.floor(tileIndex / tilesPerRow) * multiplier) / 2048;
-                            if (block.flipTopBottom) {
+                            const { tX, tY, tW, tH } = style.getSideTileTexCoords(block.bottom);
+                            if (block.bottom.flip) {
                                 modelData.textureCoords.push(
-                                    tileX + tileSize, tileY,
-                                    tileX, tileY,
-                                    tileX + tileSize, tileY + tileSize,
-                                    tileX, tileY + tileSize);
+                                    tX + tW, tY,
+                                    tX, tY,
+                                    tX + tW, tY + tH,
+                                    tX, tY + tH);
                             } else {
                                 modelData.textureCoords.push(
-                                    tileX, tileY,
-                                    tileX + tileSize, tileY,
-                                    tileX, tileY + tileSize,
-                                    tileX + tileSize, tileY + tileSize);
+                                    tX, tY,
+                                    tX + tW, tY,
+                                    tX, tY + tH,
+                                    tX + tW, tY + tH);
                             }
 
                             modelData.indices.push(start + 0, start + 1, start + 2, start + 3, start + 2, start + 1);
                         }
 
-                        if (block.right) {
-                            if (animSideBlocks.indexOf(block.right) > -1) {
+                        if (block.right && (block.right.transparent === transparentPass)) {
+                            if (animSideBlocks.indexOf(block.right.tileIndex) > -1) {
                                 animTexCoords.push(modelData.textureCoords.length);
                             }
 
                             const start = modelData.positions.length / 3;
-                            if (block.flat) {
+                            if (block.right.transparent) {
                                 modelData.positions.push(
                                     ...topSouthWest,
                                     ...topNorthWest,
@@ -172,28 +181,27 @@ export default class CityBlock {
                                     ...bottomSouthEast,
                                     ...bottomNorthEast);
                             }
-                            const tileIndex = keys.indexOf(`S${block.right}`);
-                            const tileX = (margin + Math.floor(tileIndex % tilesPerRow) * multiplier) / 2048;
-                            const tileY = (margin + Math.floor(tileIndex / tilesPerRow) * multiplier) / 2048;
-                            if (block.flipLeftRight) {
+
+                            const { tX, tY, tW, tH } = style.getSideTileTexCoords(block.right);
+                            if (block.right.flip) {
                                 modelData.textureCoords.push(
-                                    tileX + tileSize, tileY,
-                                    tileX, tileY,
-                                    tileX + tileSize, tileY + tileSize,
-                                    tileX, tileY + tileSize);
+                                    tX + tW, tY,
+                                    tX, tY,
+                                    tX + tW, tY + tH,
+                                    tX, tY + tH);
                             } else {
                                 modelData.textureCoords.push(
-                                    tileX, tileY,
-                                    tileX + tileSize, tileY,
-                                    tileX, tileY + tileSize,
-                                    tileX + tileSize, tileY + tileSize);
+                                    tX, tY,
+                                    tX + tW, tY,
+                                    tX, tY + tH,
+                                    tX + tW, tY + tH);
                             }
 
                             modelData.indices.push(start + 0, start + 1, start + 2, start + 3, start + 2, start + 1);
                         }
 
-                        if (block.left) {
-                            if (animSideBlocks.indexOf(block.left) > -1) {
+                        if (block.left && (block.left.transparent === transparentPass)) {
+                            if (animSideBlocks.indexOf(block.left.tileIndex) > -1) {
                                 animTexCoords.push(modelData.textureCoords.length);
                             }
                             const start = modelData.positions.length / 3;
@@ -202,29 +210,28 @@ export default class CityBlock {
                                 ...topSouthWest,
                                 ...bottomNorthWest,
                                 ...bottomSouthWest);
-                            const tileIndex = keys.indexOf(`S${block.left}`);
-                            const tileX = (margin + Math.floor(tileIndex % tilesPerRow) * multiplier) / 2048;
-                            const tileY = (margin + Math.floor(tileIndex / tilesPerRow) * multiplier) / 2048;
 
-                            if (block.flipLeftRight) {
+                            const { tX, tY, tW, tH } = style.getSideTileTexCoords(block.left);
+
+                            if (block.left.flip) {
                                 modelData.textureCoords.push(
-                                    tileX + tileSize, tileY,
-                                    tileX, tileY,
-                                    tileX + tileSize, tileY + tileSize,
-                                    tileX, tileY + tileSize);
+                                    tX + tW, tY,
+                                    tX, tY,
+                                    tX + tW, tY + tH,
+                                    tX, tY + tH);
                             } else {
                                 modelData.textureCoords.push(
-                                    tileX, tileY,
-                                    tileX + tileSize, tileY,
-                                    tileX, tileY + tileSize,
-                                    tileX + tileSize, tileY + tileSize);
+                                    tX, tY,
+                                    tX + tW, tY,
+                                    tX, tY + tH,
+                                    tX + tW, tY + tH);
                             }
 
                             modelData.indices.push(start + 0, start + 1, start + 2, start + 3, start + 2, start + 1);
                         }
 
-                        if (block.top) {
-                            if (animSideBlocks.indexOf(block.top) > -1) {
+                        if (block.top && (block.top.transparent === transparentPass)) {
+                            if (animSideBlocks.indexOf(block.top.tileIndex) > -1) {
                                 animTexCoords.push(modelData.textureCoords.length);
                             }
                             const start = modelData.positions.length / 3;
@@ -233,21 +240,20 @@ export default class CityBlock {
                                 ...topNorthWest,
                                 ...bottomNorthEast,
                                 ...bottomNorthWest);
-                            const tileIndex = keys.indexOf(`S${block.top}`);
-                            const tileX = (margin + Math.floor(tileIndex % tilesPerRow) * multiplier) / 2048;
-                            const tileY = (margin + Math.floor(tileIndex / tilesPerRow) * multiplier) / 2048;
-                            if (block.flipTopBottom) {
+
+                            const { tX, tY, tW, tH } = style.getSideTileTexCoords(block.top);
+                            if (block.top.flip) {
                                 modelData.textureCoords.push(
-                                    tileX + tileSize, tileY,
-                                    tileX, tileY,
-                                    tileX + tileSize, tileY + tileSize,
-                                    tileX, tileY + tileSize);
+                                    tX + tW, tY,
+                                    tX, tY,
+                                    tX + tW, tY + tH,
+                                    tX, tY + tH);
                             } else {
                                 modelData.textureCoords.push(
-                                    tileX, tileY,
-                                    tileX + tileSize, tileY,
-                                    tileX, tileY + tileSize,
-                                    tileX + tileSize, tileY + tileSize);
+                                    tX, tY,
+                                    tX + tW, tY,
+                                    tX, tY + tH,
+                                    tX + tW, tY + tH);
                             }
 
                             modelData.indices.push(start + 0, start + 1, start + 2, start + 3, start + 2, start + 1);
@@ -283,37 +289,37 @@ export default class CityBlock {
     private counter = 0;
     private updateTime: number = 0;
     public update(time: number) {
-        if (this.animEnabled) {
-            this.updateTime += time;
-            while (this.updateTime > 0.28) {
-                const auxStart = this.style.sideTiles + (this.style.lidTiles * 4);
+        //if (this.animEnabled) {
+        //    this.updateTime += time;
+        //    while (this.updateTime > 0.28) {
+        //        const auxStart = this.style.sideTiles + (this.style.lidTiles * 4);
 
-                this.updateTime -= 0.28;
-                if (this.solidModelData && (this.solidTextureCoords.length > 0)) {
-                    const clone = this.solidModelData.textureCoords.slice(0);
-                    for (const index of this.solidTextureCoords) {
-                        const tileIndex = auxStart + this.counter + 25;
-                        const tileX = (this.margin + Math.floor(tileIndex % this.tilesPerRow) * this.multiplier) / 2048;
-                        const tileY = (this.margin + Math.floor(tileIndex / this.tilesPerRow) * this.multiplier) / 2048;
-                        clone[index + 0] = tileX;
-                        clone[index + 1] = tileY;
-                        clone[index + 2] = tileX + this.tileSize;
-                        clone[index + 3] = tileY;
-                        clone[index + 4] = tileX;
-                        clone[index + 5] = tileY + this.tileSize;
-                        clone[index + 6] = tileX + this.tileSize;
-                        clone[index + 7] = tileY + this.tileSize;
-                        if (this.counter > 9) {
-                            this.counter = 0;
-                        }
-                    }
+        //        this.updateTime -= 0.28;
+        //        if (this.solidModelData && (this.solidTextureCoords.length > 0)) {
+        //            const clone = this.solidModelData.textureCoords.slice(0);
+        //            for (const index of this.solidTextureCoords) {
+        //                const tileIndex = auxStart + this.counter + 25;
+        //                const tileX = (this.margin + Math.floor(tileIndex % this.tilesPerRow) * this.multiplier) / 2048;
+        //                const tileY = (this.margin + Math.floor(tileIndex / this.tilesPerRow) * this.multiplier) / 2048;
+        //                clone[index + 0] = tileX;
+        //                clone[index + 1] = tileY;
+        //                clone[index + 2] = tileX + this.tileSize;
+        //                clone[index + 3] = tileY;
+        //                clone[index + 4] = tileX;
+        //                clone[index + 5] = tileY + this.tileSize;
+        //                clone[index + 6] = tileX + this.tileSize;
+        //                clone[index + 7] = tileY + this.tileSize;
+        //                if (this.counter > 9) {
+        //                    this.counter = 0;
+        //                }
+        //            }
 
-                    this.solidModel?.updateModel({ textureCoords: clone });
-                }
+        //            this.solidModel?.updateModel({ textureCoords: clone });
+        //        }
 
-                this.counter++;
-            }
-        }
+        //        this.counter++;
+        //    }
+        //}
     }
 }
 
@@ -354,16 +360,4 @@ function adjustSlope(slope: number, northWest: Point, northEast: Point, southWes
     up[1][2] += lower;
     down[0][2] += upper;
     down[1][2] += upper;
-}
-
-function clamp(value: number, min: number, max: number): number {
-    if (value < min) {
-        return min;
-    }
-
-    if (value > max) {
-        return max;
-    }
-
-    return value;
 }

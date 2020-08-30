@@ -1,4 +1,5 @@
-import Font from "./DataReaders/Font";
+/*
+import { IFont, ITextContainer } from "./DataReaders/Interfaces";
 import WebGlMainMenuRenderer from "./MainMenu/WebGlMainMenuRenderer";
 import Model from "./Rendering/Model";
 import { ITextBuffer } from "./Rendering/TextBuffer";
@@ -66,11 +67,11 @@ export interface MenuData {
     readonly backgroundWithoutMap: ImageData;
     readonly playerImages: readonly ImageData[];
     readonly playerNameBox: ImageData;
-    readonly bigFont: Font;
-    readonly midFont: Font;
-    readonly smallFont: Font;
-    readonly keyFont: Font;
-    readonly texts: ReadonlyMap<string, string>;
+    readonly bigFont: IFont;
+    readonly midFont: IFont;
+    readonly smallFont: IFont;
+    readonly keyFont: IFont;
+    readonly texts: ITextContainer;
 }
 
 export function loadRawImage(data: DataView, width: number) {
@@ -85,4 +86,4 @@ export function loadRawImage(data: DataView, width: number) {
     }
 
     return imageData;
-}
+}*/

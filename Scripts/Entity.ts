@@ -1,12 +1,12 @@
 import { IRenderer } from "./Rendering/WebGlCityRenderer";
-import Style from "./DataReaders/Style";
+import { IStyle } from "./DataReaders/Interfaces";
 import Sprite from "./Sprite";
 import Game from "./Game";
 
 /** Any object, character, car, etc in the game world. */
 export default class Entity extends Sprite {
     
-    constructor(game: Game, renderer: IRenderer, style: Style, spriteIndex: number, x: number, y: number, z: number) {
+    constructor(game: Game, renderer: IRenderer, style: IStyle, spriteIndex: number, x: number, y: number, z: number) {
         super(renderer, style, spriteIndex);
 
         this.game = game;

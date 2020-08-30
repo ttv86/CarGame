@@ -21,6 +21,8 @@ precision highp float;
 
 uniform sampler2D sampler;
 uniform bool useAlpha;
+uniform bool useSolidColor;
+uniform vec3 solidColor;
 
 // There are coming from vertex shader
 in vec2 vTextureCoord;
@@ -28,14 +30,18 @@ in vec2 vTextureCoord;
 out vec4 color;
 
 void main(void) {
-	vec4 texColor = texture(sampler, vec2(vTextureCoord.s, vTextureCoord.t));
-    if (texColor.a < 1.0) {
-        if (useAlpha) {
-            discard;
-        } else {
-            texColor = vec4(texColor.rgb,1.0);
+    if (useSolidColor) {
+        color = vec4(solidColor,1.0);
+    } else {
+        vec4 texColor = texture(sampler, vec2(vTextureCoord.s, vTextureCoord.t));
+        if (texColor.a < 1.0) {
+            if (useAlpha) {
+                discard;
+            } else {
+                texColor = vec4(texColor.rgb,1.0);
+            }
         }
-    }
 
-    color = texColor;
+        color = texColor;
+    }
 }`;

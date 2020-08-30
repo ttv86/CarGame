@@ -1,4 +1,6 @@
-export default class Model {
+import { Program } from "./WebGlBaseRenderer";
+
+export default class Model implements IDrawable {
     private gl: WebGLRenderingContext;
     private vertexPositionBuffer: WebGLBuffer;
     private vertexTextureBuffer: WebGLBuffer;
@@ -64,22 +66,22 @@ export default class Model {
 
     public center: { x: number, y: number } = { x: 0, y: 0 };
 
-    public draw(gl: WebGLRenderingContext, vertexPositionAttribute: number, vertexTextureAttribute: number, transparentUniformLocation: WebGLUniformLocation | null): void {
-        if (transparentUniformLocation) {
-            gl.uniform1i(transparentUniformLocation, this.transparent ? 1 : 0);
-        }
+    public draw(gl: WebGLRenderingContext, program: Program): void {
+        program.useSolidColor = false;
+        program.transparent = this.transparent;
 
         gl.bindTexture(WebGLRenderingContext.TEXTURE_2D, this.texture);
 
-        gl.bindBuffer(WebGLRenderingContext.ARRAY_BUFFER, this.vertexPositionBuffer);
-        gl.vertexAttribPointer(vertexPositionAttribute, 3, WebGLRenderingContext.FLOAT, false, 0, 0);
-
-        gl.bindBuffer(WebGLRenderingContext.ARRAY_BUFFER, this.vertexTextureBuffer);
-        gl.vertexAttribPointer(vertexTextureAttribute, 2, WebGLRenderingContext.FLOAT, false, 0, 0);
+        program.bindLocationBuffer(this.vertexPositionBuffer);
+        program.bindTextureBuffer(this.vertexTextureBuffer);
 
         gl.bindBuffer(WebGLRenderingContext.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
         gl.drawElements(WebGLRenderingContext.TRIANGLES, this.elementCount, WebGLRenderingContext.UNSIGNED_SHORT, 0);
     }
+}
+
+export interface IDrawable {
+    draw(gl: WebGLRenderingContext, program: Program): void;
 }
 
 export interface IModelData {

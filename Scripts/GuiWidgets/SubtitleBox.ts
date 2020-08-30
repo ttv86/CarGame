@@ -1,14 +1,13 @@
 import Entity from "../Entity";
 import Game from "../Game";
 import { IRenderer } from "../Rendering/WebGlCityRenderer";
-import Style from "../DataReaders/Style";
-import Font from "../DataReaders/Font";
+import { IStyle, IFont } from "../DataReaders/Interfaces";
 import { ITextBuffer } from "../Rendering/TextBuffer";
 
 export default class SubtitleBox extends Entity {
     private readonly subtitleTextBuffer: ITextBuffer;
 
-    constructor(game: Game, renderer: IRenderer, style: Style, font: Font) {
+    constructor(game: Game, renderer: IRenderer, style: IStyle, font: IFont) {
         super(game, renderer, style, 0, 0, 0, 0);
 
         this.subtitleTextBuffer = renderer.createTextBuffer(64, 0, 1000, 1000, font, { verticalAlign: "bottom", wordWrap: true });

@@ -52,6 +52,8 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Scripts\" />
+    <Folder Include="Scripts\DataReaders\G1\" />
+    <Folder Include="Scripts\DataReaders\G2\" />
     <Folder Include="Scripts\GuiWidgets\" />
     <Folder Include="Scripts\DataReaders\" />
     <Folder Include="Scripts\MainMenu\" />
@@ -60,13 +62,19 @@
     <Folder Include="wwwroot\" />
   </ItemGroup>
   <ItemGroup>
-    <TypeScriptCompile Include="Scripts\DataReaders\Audio.ts">
+    <TypeScriptCompile Include="Scripts\DataReaders\G1\Audio.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
     <TypeScriptCompile Include="Scripts\DataReaders\BinaryReader.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
-    <TypeScriptCompile Include="Scripts\DataReaders\MissionReader.ts">
+    <TypeScriptCompile Include="Scripts\DataReaders\G1\MissionReader.ts">
+      <SubType>Code</SubType>
+    </TypeScriptCompile>
+    <TypeScriptCompile Include="Scripts\DataReaders\Interfaces.ts">
+      <SubType>Code</SubType>
+    </TypeScriptCompile>
+    <TypeScriptCompile Include="Scripts\GameScriptBase.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
     <TypeScriptCompile Include="Scripts\GuiWidgets\LocationInfo.ts">
@@ -81,6 +89,9 @@
     <TypeScriptCompile Include="Scripts\MainMenu\WebGlMainMenuRenderer.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
+    <TypeScriptCompile Include="Scripts\PhysicsSystem.ts">
+      <SubType>Code</SubType>
+    </TypeScriptCompile>
     <TypeScriptCompile Include="Scripts\Rendering\CityBlock.ts" />
     <TypeScriptCompile Include="Scripts\Rendering\Model.ts">
       <SubType>Code</SubType>
@@ -89,6 +100,9 @@
       <SubType>Code</SubType>
     </TypeScriptCompile>
     <TypeScriptCompile Include="Scripts\Rendering\WebGlBaseRenderer.ts">
+      <SubType>Code</SubType>
+    </TypeScriptCompile>
+    <TypeScriptCompile Include="Scripts\Rendering\WireframeModel.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
     <TypeScriptCompile Include="Scripts\Sprite.ts">
@@ -106,7 +120,7 @@
     <TypeScriptCompile Include="Scripts\Entity.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
-    <TypeScriptCompile Include="Scripts\DataReaders\Font.ts">
+    <TypeScriptCompile Include="Scripts\DataReaders\G1\Font.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
     <TypeScriptCompile Include="Scripts\Game.ts">
@@ -118,14 +132,14 @@
     <TypeScriptCompile Include="Scripts\Main.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
-    <TypeScriptCompile Include="Scripts\DataReaders\GameMap.ts">
+    <TypeScriptCompile Include="Scripts\DataReaders\G1\GameMap.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
-    <TypeScriptCompile Include="Scripts\Mission.ts" />
-    <TypeScriptCompile Include="Scripts\DataReaders\Style.ts">
+    <TypeScriptCompile Include="Scripts\DataReaders\G1\Mission.ts" />
+    <TypeScriptCompile Include="Scripts\DataReaders\G1\Style.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
-    <TypeScriptCompile Include="Scripts\DataReaders\TextDecryptor.ts">
+    <TypeScriptCompile Include="Scripts\DataReaders\G1\TextContainer.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
     <TypeScriptCompile Include="Scripts\WorldEntities\Trigger.ts">

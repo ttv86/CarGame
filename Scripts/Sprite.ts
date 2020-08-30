@@ -1,5 +1,5 @@
 import { IRenderer } from "./Rendering/WebGlCityRenderer";
-import Style from "./DataReaders/Style";
+import { IStyle } from "./DataReaders/Interfaces";
 import Model from "./Rendering/Model";
 
 export default class Sprite {
@@ -8,21 +8,21 @@ export default class Sprite {
     public readonly height: number;
     public readonly model: Model | null;
 
-    constructor(renderer: IRenderer, style: Style, spriteIndex: number, x: number = 0, y: number = 0) {
+    constructor(renderer: IRenderer, style: IStyle, spriteIndex: number, x: number = 0, y: number = 0) {
         this.renderer = renderer;
 
-        const position = style.spritePosition(spriteIndex);
-        if (!position) {
+        const position = null; // TODO: style.spritePosition(spriteIndex);
+        //if (!position) {
             // Invalid sprite. Can't draw anything.
             this.width = 0;
             this.height = 0;
             this.model = null;
             return;
-        }
+        //}
 
-        this.width = position.width;
-        this.height = position.height;
-        this.model = renderer.createModelFromSprite(position, style.spriteCanvas, x, y);
+        //this.width = position.width;
+        //this.height = position.height;
+        //this.model = renderer.createModelFromSprite(position, style.spriteCanvas, x, y);
     }
 
     public render() {

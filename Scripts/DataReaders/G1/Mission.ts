@@ -1,16 +1,15 @@
-import Vehicle from "./WorldEntities/Vehicle";
-import Game from "./Game";
-import { IMission } from "./DataReaders/MissionReader";
-import Character from "./WorldEntities/Character";
-import Trigger from "./WorldEntities/Trigger";
-import TrainSystem from "./TrainSystem";
+import Vehicle from "../../WorldEntities/Vehicle";
+import Game from "../../Game";
+import { IMission } from "./MissionReader";
+import Character from "../../WorldEntities/Character";
+import Trigger from "../../WorldEntities/Trigger";
+import GameScriptBase from "../../GameScriptBase";
 
 const FramesPerSecond = 25;
 
 type InitLineFunction = (line: number | null, reset: boolean, coordinates: ICoordinates, param1?: number, param2?: number, param3?: number, param4?: number, param5?: number) => unknown;
 type CommandLineFunction = (line: number | null, object: number, success: number, fail: number, data: number, scoreOrText: number) => (number | ICommandResult);
-export default class Mission {
-    private game: Game;
+export default class Mission extends GameScriptBase {
     private missionData: IMission;
     private initMap: Record<string, InitLineFunction> = {
         "ALT_DAMAGE_TRIG": this.initAltDamageTrig as InitLineFunction,
@@ -206,12 +205,14 @@ export default class Mission {
     private commandReferences = new Map<number, number>();
     private threads: Thread[] = [];
 
-    constructor(game: Game, missionData: IMission) {
-        this.game = game;
+    constructor(missionData: IMission) {
+        super();
         this.missionData = missionData;
     }
 
-    public initializeGame() {
+    public initialize(game: Game) {
+        super.initialize(game);
+
         for (const line of this.missionData.initLines) {
             const func = this.initMap[line.commandName];
             if (func) {
@@ -787,7 +788,7 @@ export default class Mission {
      * @param angle Angle of the parked car.
      */
     private initParkedPixels(line: number, reset: boolean, coordinates: ICoordinates, carType: number, angle: number): Vehicle | null {
-        const info = this.game.style.carInfos.find(x => x.model === carType); //.getVehicleInfo(carType);
+        const info = this.game.style.getVehicleInfo(carType);
         if (info) {
             const vehicle = new Vehicle(this.game, this.game.renderer, this.game.style, coordinates.x, coordinates.y, coordinates.z, angle / 512 * Math.PI, info);
             this.game.renderer.worldEntities.push(vehicle);
@@ -1824,7 +1825,7 @@ export default class Mission {
     private commandIsPlayerOnTrain(line: number | null, train: number, nextLineIfTrue: number, nextLineIfFalse: number, param4: number, score: number): number {
         const trainReference = this.initReferences.get(train);
         const playerVehicle = this.game.player?.vehicle;
-        if ((!this.game.trainSystem.isWrecked) && playerVehicle && (playerVehicle.info.vtype === 8)) {
+        if ((!this.game.trainSystem.isWrecked) && playerVehicle && (playerVehicle.info.type === "train")) {
             if (trainReference instanceof Dummy) {
                 this.game.score += score;
                 trainReference.value = playerVehicle;
@@ -2737,7 +2738,7 @@ export default class Mission {
      */
     private commandWreckATrain(line: number | null, train: number, nextLine: number, param3: number, param4: number, score: number): number {
         const trainReference = this.initReferences.get(train);
-        if ((!this.game.trainSystem.isWrecked) && (trainReference instanceof Dummy) && (trainReference.value instanceof Vehicle) && (trainReference.value.info.vtype === 8)) {
+        if ((!this.game.trainSystem.isWrecked) && (trainReference instanceof Dummy) && (trainReference.value instanceof Vehicle) && (trainReference.value.info.type === "train")) {
             this.game.score += score;
             console.error("Not implemented: Blow up a train.");
             this.game.trainSystem.isWrecked = true;

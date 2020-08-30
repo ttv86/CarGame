@@ -1,7 +1,7 @@
 import Entity from "../Entity";
 import Game from "../Game";
 import { IRenderer } from "../Rendering/WebGlCityRenderer";
-import Style from "../DataReaders/Style";
+import { IStyle } from "../DataReaders/Interfaces";
 
 /** Trigger can have a callback that is called, when user is within the trigger area. */
 export default class Trigger extends Entity {
@@ -11,7 +11,7 @@ export default class Trigger extends Entity {
     private readonly y1: number;
     private readonly y2: number;
 
-    constructor(game: Game, renderer: IRenderer, style: Style, x: number, y: number, z: number, size: number) {
+    constructor(game: Game, renderer: IRenderer, style: IStyle, x: number, y: number, z: number, size: number) {
         super(game, renderer, style, 0, x, y, z);
         const halfSize = 32 + size;
         this.x1 = x - halfSize;

@@ -1,6 +1,9 @@
-import { BinaryReader } from "./BinaryReader";
+import { IGameMap, IBlock, IWall, ILid, ILight } from "../Interfaces";
+import { BinaryReader } from "../BinaryReader";
 
-export default class GameMap {
+export default class GameMap implements IGameMap {
+    private readonly blocks: (MapBlock | null)[][][];
+
     constructor(data: DataView) {
         const reader = new BinaryReader(data);
         const version = reader.readInt32();
@@ -26,6 +29,26 @@ export default class GameMap {
         this.readRoutes(reader, routeSize);
         this.readLocationData(reader);
         this.readNavData(reader, navDataSize);
+    }
+
+    public get width(): number {
+        return 256;
+    }
+
+    public get height(): number {
+        return 256;
+    }
+
+    public getBlock(x: number, y: number, z: number): IBlock | null {
+        if ((z >= 0) && (z < 6)) {
+            return this.blocks[clamp(x, 0, 255)][clamp(y, 0, 255)][z];
+        } else {
+            return null;
+        }
+    }
+
+    public get lights(): ILight[] {
+        return [];
     }
 
     private readGrid(reader: BinaryReader, columnSize: number, blockSize: number): void {
@@ -169,8 +192,6 @@ export default class GameMap {
 
     public readonly sample: number;
 
-    public readonly blocks: (MapBlock | null)[][][];
-
     public readonly objects: IMapObject[] = [];
 
     public readonly routes: IMapRoute[] = [];
@@ -184,7 +205,7 @@ export default class GameMap {
     public readonly fireStations: IMapPoint[] = [];
 }
 
-class MapBlock {
+class MapBlock implements IBlock {
     constructor(index: number, typeMap: number, typeMapExt: number, left: number, right: number, top: number, bottom: number, lid: number) {
         this.index = index;
         this.direction = (typeMap >> 0) & 15;
@@ -199,11 +220,49 @@ class MapBlock {
         this.flipLeftRight = ((typeMapExt >> 6) & 1) !== 0;
         this.railway = ((typeMapExt >> 7) & 1) !== 0;
 
-        this.left = left;
-        this.right = right;
-        this.top = top;
-        this.bottom = bottom;
-        this.lid = lid;
+        this.left = left ? {
+            tileIndex: left,
+            playerWall: true,
+            bulletWall: true,
+            transparent: this.flat,
+            flip: this.flipLeftRight,
+            rotate: 0,
+        } : null;
+
+        this.right = right ? {
+            tileIndex: right,
+            playerWall: true,
+            bulletWall: true,
+            transparent: this.flat,
+            flip: this.flipLeftRight,
+            rotate: 0,
+        } : null;
+
+        this.top = top ? {
+            tileIndex: top,
+            playerWall: true,
+            bulletWall: true,
+            transparent: this.flat,
+            flip: this.flipTopBottom,
+            rotate: 0,
+        } : null;
+
+        this.bottom = bottom ? {
+            tileIndex: bottom,
+            playerWall: true,
+            bulletWall: true,
+            transparent: this.flat,
+            flip: this.flipTopBottom,
+            rotate: 0,
+        } : null;
+
+        this.lid = lid ? {
+            tileIndex: lid,
+            lightLevel: this.remap,
+            transparent: this.flat,
+            flip: false,
+            rotate: this.lidRotation,
+        } : null;
     }
 
     public readonly index: number;
@@ -219,14 +278,26 @@ class MapBlock {
     public readonly flipLeftRight: boolean;
     public readonly railway: boolean;
 
-    public readonly left: number;
-    public readonly right: number;
-    public readonly top: number;
-    public readonly bottom: number;
-    public readonly lid: number;
+    public readonly left: IWall | null;
+    public readonly right: IWall | null;
+    public readonly top: IWall | null;
+    public readonly bottom: IWall | null;
+    public readonly lid: ILid | null;
 }
 
-interface IMapArea {
+function clamp(value: number, min: number, max: number): number {
+    if (value < min) {
+        return min;
+    }
+
+    if (value > max) {
+        return max;
+    }
+
+    return value;
+}
+
+export interface IMapArea {
     name: string;
     x: number;
     y: number;

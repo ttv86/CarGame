@@ -1,6 +1,7 @@
-import { BinaryReader } from "./BinaryReader";
+import { BinaryReader } from "../BinaryReader";
+import { IAudio, IArea, AudioName } from "../Interfaces";
 
-export default class Audio {
+export default class Audio implements IAudio {
     private ctx: AudioContext;
     private sounds: AudioBuffer[] = [];
 
@@ -28,7 +29,13 @@ export default class Audio {
         return this.sounds.length;
     }
 
-    public play(audioIndex: number) {
+    public play(area: IArea): void;
+    public play(name: AudioName): void;
+    public play(value: unknown): void {
+
+    }
+
+    public playIndex(audioIndex: number) {
         if ((audioIndex >= 0) && (audioIndex < this.sounds.length)) {
             const source = this.ctx.createBufferSource();
             source.buffer = this.sounds[audioIndex];

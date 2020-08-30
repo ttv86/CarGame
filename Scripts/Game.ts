@@ -1,30 +1,25 @@
 import Character, { CharacterState } from "./WorldEntities/Character";
 import { IRenderer } from "./Rendering/WebGlCityRenderer";
-import Style, { ICarInfo } from "./DataReaders/Style";
+import { IGameMap, IStyle, IVehicleInfo, IFont, IGameScript, IAudio, ITextContainer, IArea } from "./DataReaders/Interfaces";
 import Entity from "./Entity";
-import GameMap from "./DataReaders/GameMap";
 import Vehicle from "./WorldEntities/Vehicle";
 import Pager from "./GuiWidgets/Pager";
 import LocationInfo from "./GuiWidgets/LocationInfo";
-import Font from "./DataReaders/Font";
 import KeyboardHandler from "./KeyboardHandler";
-import { IMission } from "./DataReaders/MissionReader";
-import Mission from "./Mission";
 import Trigger from "./WorldEntities/Trigger";
 import SubtitleBox from "./GuiWidgets/SubtitleBox";
-import Audio from "./DataReaders/Audio";
 import TrainSystem from "./TrainSystem";
 
 export default class Game {
     private readonly subtitles: SubtitleBox;
-    private readonly globalAudio: Audio;
-    private readonly localAudio: Audio;
+    private readonly globalAudio: IAudio;
+    private readonly localAudio: IAudio;
     private readonly areas: ISubArea[] = [];
     private lastLocation: ISubArea | null = null;
-    public readonly map: GameMap;
-    public readonly style: Style;
-    public readonly mission: Mission;
-    public readonly texts: Map<string, string>;
+    public readonly map: IGameMap;
+    public readonly style: IStyle;
+    public readonly gameScript: IGameScript;
+    public readonly texts: ITextContainer;
     public readonly renderer: IRenderer;
     public readonly keyboard: KeyboardHandler;
     public readonly pager: Pager;
@@ -32,38 +27,37 @@ export default class Game {
     public readonly triggers: Trigger[] = [];
     public player: Character | null = null;
     public vehicles: Vehicle[] = [];
-    public camera: [number, number, number] = [105.5 * 64, 119.5 * 64, 1 * 64];
+    public camera: [number, number, number] = [128 * 64, 128 * 64, 10 * 64];
     public targetScore: number = 0;
     public secretMissions: number = 0;
     public score: number = 0;
     public trainSystem: TrainSystem;
 
     constructor(
-        map: GameMap,
-        style: Style,
-        mission: IMission,
-        texts: Map<string, string>,
+        map: IGameMap,
+        style: IStyle,
+        gameScript: IGameScript,
+        texts: ITextContainer,
         renderer: IRenderer,
-        subtitleFont: Font,
-        pointFont: Font,
-        locationFont: Font,
-        lifeFont: Font,
-        pagerFont: Font,
-        globalAudio: Audio,
-        localAudio: Audio) {
+        subtitleFont: IFont,
+        pointFont: IFont,
+        locationFont: IFont,
+        lifeFont: IFont,
+        pagerFont: IFont,
+        globalAudio: IAudio,
+        localAudio: IAudio) {
 
-        document.title = texts.get(`city${map.style - 1}`) ?? document.title;
         this.map = map;
         this.style = style;
         this.renderer = renderer;
         this.texts = texts;
-        this.mission = new Mission(this, mission);
+        this.gameScript = gameScript; // new Mission(this, mission);
         this.keyboard = new KeyboardHandler();
         this.globalAudio = globalAudio;
         this.localAudio = localAudio;
 
         // Run world initialization logic.
-        this.mission.initializeGame();
+        this.gameScript.initialize(this);
 
         this.pager = new Pager(this, renderer, style, pagerFont);
         this.renderer.guiEntities.push(this.pager);
@@ -77,27 +71,26 @@ export default class Game {
         this.trainSystem = new TrainSystem(this, map, style);
 
         // Make sure areas are sorted by size.
-        map.areas.sort((a1, a2) => (a1.height * a1.width) - (a2.height * a2.width));
+        const areas = [...map.areas];
+        areas.sort((a1, a2) => (a1.height * a1.width) - (a2.height * a2.width));
 
         // Calculate area boundaries, so we don't need to do this in render loop.
-        const areaStart = `${map.style.toString().padStart(3, '0')}area`;
-        for (const area of map.areas) {
+        for (const area of areas) {
             const w = area.width / 3;
             const h = area.height / 3;
-            const areaNameKey = areaStart + area.voiceId.toString().padStart(3, "0");
+            const name = this.texts.getAreaName(area);
             this.areas.push(
-                { x1: (area.x + (0 * w)) * 64, y1: (area.y + (0 * h)) * 64, x2: (area.x + (1 * w)) * 64, y2: (area.y + (1 * h)) * 64, name: `${texts.get(`nw`)} ${texts.get(areaNameKey)}`, voice1: null, voice2: area.voiceId },
-                { x1: (area.x + (1 * w)) * 64, y1: (area.y + (0 * h)) * 64, x2: (area.x + (2 * w)) * 64, y2: (area.y + (1 * h)) * 64, name: `${texts.get(`n`)} ${texts.get(areaNameKey)}`, voice1: null, voice2: area.voiceId },
-                { x1: (area.x + (2 * w)) * 64, y1: (area.y + (0 * h)) * 64, x2: (area.x + (3 * w)) * 64, y2: (area.y + (1 * h)) * 64, name: `${texts.get(`ne`)} ${texts.get(areaNameKey)}`, voice1: null, voice2: area.voiceId },
+                { x1: (area.x + (0 * w)) * 64, y1: (area.y + (0 * h)) * 64, x2: (area.x + (1 * w)) * 64, y2: (area.y + (1 * h)) * 64, name: `${texts.getSpecial("north-west")} ${name}`, parentArea: area, subSection: "north-west" },
+                { x1: (area.x + (1 * w)) * 64, y1: (area.y + (0 * h)) * 64, x2: (area.x + (2 * w)) * 64, y2: (area.y + (1 * h)) * 64, name: `${texts.getSpecial("north")} ${name}`, parentArea: area, subSection: "north" },
+                { x1: (area.x + (2 * w)) * 64, y1: (area.y + (0 * h)) * 64, x2: (area.x + (3 * w)) * 64, y2: (area.y + (1 * h)) * 64, name: `${texts.getSpecial("north-east")} ${name}`, parentArea: area, subSection: "north-east" },
 
-                { x1: (area.x + (0 * w)) * 64, y1: (area.y + (1 * h)) * 64, x2: (area.x + (1 * w)) * 64, y2: (area.y + (2 * h)) * 64, name: `${texts.get(`w`)} ${texts.get(areaNameKey)}`, voice1: null, voice2: area.voiceId },
-                { x1: (area.x + (1 * w)) * 64, y1: (area.y + (1 * h)) * 64, x2: (area.x + (2 * w)) * 64, y2: (area.y + (2 * h)) * 64, name: `${texts.get(areaNameKey)}`, voice1: null, voice2: area.voiceId },
-                { x1: (area.x + (2 * w)) * 64, y1: (area.y + (1 * h)) * 64, x2: (area.x + (3 * w)) * 64, y2: (area.y + (2 * h)) * 64, name: `${texts.get(`e`)} ${texts.get(areaNameKey)}`, voice1: null, voice2: area.voiceId },
+                { x1: (area.x + (0 * w)) * 64, y1: (area.y + (1 * h)) * 64, x2: (area.x + (1 * w)) * 64, y2: (area.y + (2 * h)) * 64, name: `${texts.getSpecial("west")} ${name}`, parentArea: area, subSection: "west" },
+                { x1: (area.x + (1 * w)) * 64, y1: (area.y + (1 * h)) * 64, x2: (area.x + (2 * w)) * 64, y2: (area.y + (2 * h)) * 64, name: `${name}`, parentArea: area, subSection: null },
+                { x1: (area.x + (2 * w)) * 64, y1: (area.y + (1 * h)) * 64, x2: (area.x + (3 * w)) * 64, y2: (area.y + (2 * h)) * 64, name: `${texts.getSpecial("east")} ${name}`, parentArea: area, subSection: "east" },
 
-                { x1: (area.x + (0 * w)) * 64, y1: (area.y + (2 * h)) * 64, x2: (area.x + (1 * w)) * 64, y2: (area.y + (3 * h)) * 64, name: `${texts.get(`sw`)} ${texts.get(areaNameKey)}`, voice1: null, voice2: area.voiceId },
-                { x1: (area.x + (1 * w)) * 64, y1: (area.y + (2 * h)) * 64, x2: (area.x + (2 * w)) * 64, y2: (area.y + (3 * h)) * 64, name: `${texts.get(`s`)} ${texts.get(areaNameKey)}`, voice1: null, voice2: area.voiceId },
-                { x1: (area.x + (2 * w)) * 64, y1: (area.y + (2 * h)) * 64, x2: (area.x + (3 * w)) * 64, y2: (area.y + (3 * h)) * 64, name: `${texts.get(`se`)} ${texts.get(areaNameKey)}`, voice1: null, voice2: area.voiceId },
-                //{ x1: (area.x + (0 * w)) * 64, y1: (area.y + (0 * h)) * 64, x2: (area.x + (3 * w)) * 64, y2: (area.y + (3 * h)) * 64, name: `${texts.get(areaNameKey)}`, voice1: null, voice2: area.voiceId },
+                { x1: (area.x + (0 * w)) * 64, y1: (area.y + (2 * h)) * 64, x2: (area.x + (1 * w)) * 64, y2: (area.y + (3 * h)) * 64, name: `${texts.getSpecial("south-west")} ${name}`, parentArea: area, subSection: "south-west" },
+                { x1: (area.x + (1 * w)) * 64, y1: (area.y + (2 * h)) * 64, x2: (area.x + (2 * w)) * 64, y2: (area.y + (3 * h)) * 64, name: `${texts.getSpecial("south")} ${name}`, parentArea: area, subSection: "south" },
+                { x1: (area.x + (2 * w)) * 64, y1: (area.y + (2 * h)) * 64, x2: (area.x + (3 * w)) * 64, y2: (area.y + (3 * h)) * 64, name: `${texts.getSpecial("south-east")} ${name}`, parentArea: area, subSection: "south-east" },
             );
         }
 
@@ -111,7 +104,7 @@ export default class Game {
      */
     public update(time: number) {
         // First send keyboard commands to player.
-        this.mission.update();
+        // TODO:this.gameScript.update(time);
         if (this.player) {
 
             for (const trigger of this.triggers) {
@@ -179,7 +172,6 @@ export default class Game {
             this.camera = [this.player.x, this.player.y + 20, this.player.z - 192 + Math.abs(this.player.vehicle?.currentSpeed ?? 0) * 32];
         }
 
-        let possibleLocations: ISubArea[] = [];
         let location: ISubArea | null = null;
         for (const area of this.areas) {
             if ((this.camera[0] >= area.x1) && (this.camera[0] < area.x2) && (this.camera[1] >= area.y1) && (this.camera[1] < area.y2)) {
@@ -207,41 +199,41 @@ export default class Game {
     }
 
     public createVehicle(vehicleType: number, x: number, y: number, z: number): Vehicle {
-        const info = this.style.carInfos[vehicleType] ?? null;
-        let offset;
-        switch (info.vtype) {
-            case 0:
-                offset = this.style.spriteOffsets.Bus;
-                break;
-            case 3:
-                offset = this.style.spriteOffsets.Bike;
-                break;
-            default:
-            case 4:
-                offset = this.style.spriteOffsets.Car;
-                break;
-            case 8:
-                offset = this.style.spriteOffsets.Train;
-                break;
-        }
+        const info = this.style.getVehicleInfo(vehicleType);
+        //let offset;
+        //switch (info.type) {
+        //    case "bus":
+        //        offset = this.style.spriteOffsets.Bus;
+        //        break;
+        //    case "bike":
+        //        offset = this.style.spriteOffsets.Bike;
+        //        break;
+        //    default:
+        //    case "car":
+        //        offset = this.style.spriteOffsets.Car;
+        //        break;
+        //    case "train":
+        //        offset = this.style.spriteOffsets.Train;
+        //        break;
+        //}
 
-        const sprite = info.sprNum + offset;
-        const position = this.style.spritePosition(sprite);
-        if (!position) {
-            throw new Error();
-        }
+        //const sprite = info.sprNum + offset;
+        //const position = this.style.spritePosition(sprite);
+        //if (!position) {
+        //    throw new Error();
+        //}
 
-        const h = (info.height / 128);
-        const w = (info.width / 128);
+        //const h = (info.height / 128);
+        //const w = (info.width / 128);
 
-        this.renderer.createModel({
-            texture: this.style.spriteCanvas,
-            transparent: true,
-            positions: [x - w, z, y - h, x + w, z, y - h, x - w, z, y + h, x + w, z, y + h],
-            textureCoords: [position.tX, position.tY, position.tX + position.tW, position.tY, position.tX, position.tY + position.tH, position.tX + position.tW, position.tY + position.tH],
-            indices: [0, 1, 2, 0, 2, 1, 1, 2, 3, 1, 3, 2],
-            center: { x, y },
-        });
+        //this.renderer.createModel({
+        //    texture: this.style.spriteCanvas,
+        //    transparent: true,
+        //    positions: [x - w, z, y - h, x + w, z, y - h, x - w, z, y + h, x + w, z, y + h],
+        //    textureCoords: [position.tX, position.tY, position.tX + position.tW, position.tY, position.tX, position.tY + position.tH, position.tX + position.tW, position.tY + position.tH],
+        //    indices: [0, 1, 2, 0, 2, 1, 1, 2, 3, 1, 3, 2],
+        //    center: { x, y },
+        //});
 
         return null!;
     }
@@ -268,60 +260,60 @@ export default class Game {
     }
 
     public playSound(name: string): void {
-        // NOTE: Audio might not play until user has interacted with content. This should be resolved after main menu is implemented.
-        switch (name) {
-            case "intro":
-                this.globalAudio.play(0);
-                break;
-            case "missionComplete":
-                this.globalAudio.play(1);
-                break;
-            case "missionFailed":
-                this.globalAudio.play(2);
-                break;
-            case "killFrenzy":
-                this.globalAudio.play(3);
-                break;
-            case "excellent":
-                this.globalAudio.play(4);
-                break;
-            case "betterLuck":
-                this.globalAudio.play(5);
-                break;
-            case "loser":
-                this.globalAudio.play(6);
-                break;
-            case "wow":
-                this.globalAudio.play(7);
-                break;
-            case "laugh1":
-                this.globalAudio.play(8);
-                break;
-            case "laugh2":
-                this.globalAudio.play(9);
-                break;
-            case "laugh3":
-                this.globalAudio.play(10);
-                break;
-            case "extraLife":
-                this.globalAudio.play(11);
-                break;
-            case "sad":
-                this.globalAudio.play(12);
-                break;
-            case "go":
-                this.globalAudio.play(14);
-                break;
-            case "gogogo":
-                this.globalAudio.play(15);
-                break;
-            case "moveIt":
-                this.globalAudio.play(16);
-                break;
-            case "applause":
-                this.globalAudio.play(17);
-                break;
-        }
+        ////// NOTE: Audio might not play until user has interacted with content. This should be resolved after main menu is implemented.
+        ////switch (name) {
+        ////    case "intro":
+        ////        this.globalAudio.play(0);
+        ////        break;
+        ////    case "missionComplete":
+        ////        this.globalAudio.play(1);
+        ////        break;
+        ////    case "missionFailed":
+        ////        this.globalAudio.play(2);
+        ////        break;
+        ////    case "killFrenzy":
+        ////        this.globalAudio.play(3);
+        ////        break;
+        ////    case "excellent":
+        ////        this.globalAudio.play(4);
+        ////        break;
+        ////    case "betterLuck":
+        ////        this.globalAudio.play(5);
+        ////        break;
+        ////    case "loser":
+        ////        this.globalAudio.play(6);
+        ////        break;
+        ////    case "wow":
+        ////        this.globalAudio.play(7);
+        ////        break;
+        ////    case "laugh1":
+        ////        this.globalAudio.play(8);
+        ////        break;
+        ////    case "laugh2":
+        ////        this.globalAudio.play(9);
+        ////        break;
+        ////    case "laugh3":
+        ////        this.globalAudio.play(10);
+        ////        break;
+        ////    case "extraLife":
+        ////        this.globalAudio.play(11);
+        ////        break;
+        ////    case "sad":
+        ////        this.globalAudio.play(12);
+        ////        break;
+        ////    case "go":
+        ////        this.globalAudio.play(14);
+        ////        break;
+        ////    case "gogogo":
+        ////        this.globalAudio.play(15);
+        ////        break;
+        ////    case "moveIt":
+        ////        this.globalAudio.play(16);
+        ////        break;
+        ////    case "applause":
+        ////        this.globalAudio.play(17);
+        ////        break;
+        ////}
     }
 
     public showText(textReference: number, type: "mouth" | "phone" | "mobile"): void {
@@ -336,6 +328,6 @@ interface ISubArea {
     x2: number;
     y2: number;
     name: string;
-    voice1: number | null;
-    voice2: number;
+    parentArea: IArea;
+    subSection: "west" | "north" | "south" | "east" | "north-west" | "north-east" | "south-west" | "south-east" | null;
 }

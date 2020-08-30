@@ -1,9 +1,8 @@
-import Style from "../DataReaders/Style";
+import { IStyle, IFont } from "../DataReaders/Interfaces";
 import { IRenderer } from "../Rendering/WebGlCityRenderer";
 import Entity from "../Entity";
 import Sprite from "../Sprite";
 import { ITextBuffer } from "../Rendering/TextBuffer";
-import Font from "../DataReaders/Font";
 import Game from "../Game";
 
 export default class Pager extends Entity {
@@ -15,7 +14,7 @@ export default class Pager extends Entity {
     private position: number = 0;
     private hideLimit: number = 0;
 
-    constructor(game: Game, renderer: IRenderer, style: Style, font: Font) {
+    constructor(game: Game, renderer: IRenderer, style: IStyle, font: IFont) {
         super(game, renderer, style, 28, 0, 0, 0);
         this.light = new Sprite(renderer, style, 29, 22, 38);
         this.textBuffer = renderer.createTextBuffer(22, 14, 116, 18, font, { verticalAlign: "middle", wordWrap: false });

@@ -1,3 +1,4 @@
+/*
 import WebGlBaseRenderer from "../Rendering/WebGlBaseRenderer";
 import { mat4 } from "gl-matrix";
 import Model, { IModelData } from "../Rendering/Model";
@@ -10,8 +11,8 @@ export default class WebGlMainMenuRenderer extends WebGlBaseRenderer {
         const world = mat4.lookAt(mat4.create(), [0, 0, 10], [0, 0, 0], [0, 1, 0]);
         const view = mat4.identity(mat4.create());
 
-        this.gl.uniformMatrix4fv(this.worldMatrixLocation, false, world);
-        this.gl.uniformMatrix4fv(this.viewMatrixLocation, false, view);
+        this.program.worldMatrix = world;
+        this.program.viewMatrix = view;
         this.gl.clearColor(0, 0, 0, 1);
     }
 
@@ -59,7 +60,7 @@ export default class WebGlMainMenuRenderer extends WebGlBaseRenderer {
         }
 
         const projection = mat4.ortho(mat4.create(), 0, width, height, 0, 0.1, 100);
-        this.gl.uniformMatrix4fv(this.projectionMatrixLocation, false, projection);
+        this.program.projectionMatrix = projection;
         this.gl.viewport((this.width - fullWidth) / 2, (this.height - fullHeight) / 2, fullWidth, fullHeight);
     }
 
@@ -76,10 +77,10 @@ export default class WebGlMainMenuRenderer extends WebGlBaseRenderer {
 
         if (model instanceof Model) {
             const view = mat4.fromTranslation(mat4.identity(mat4.create()), [model.center.x, model.center.y, 0]);
-            this.gl.uniformMatrix4fv(this.viewMatrixLocation, false, view);
+            this.program.viewMatrix = view;
 
-            model.draw(this.gl, this.vertexPositionLocation, this.textureCoordLocation, this.useAlphaLocation);
+            model.draw(this.gl, this.program);
         }
 
     }
-}
+}*/

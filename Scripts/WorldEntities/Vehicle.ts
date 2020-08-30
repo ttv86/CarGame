@@ -1,5 +1,5 @@
 import Entity from "../Entity";
-import Style, { ICarInfo } from "../DataReaders/Style";
+import { IStyle, IVehicleInfo } from "../DataReaders/Interfaces";
 import { IRenderer } from "../Rendering/WebGlCityRenderer";
 import Character from "./Character";
 import Game from "../Game";
@@ -12,11 +12,13 @@ export default class Vehicle extends Entity {
     private turning = false;
     private wheelAngle = 0;
 
-    constructor(game: Game, renderer: IRenderer, style: Style, x: number, y: number, z: number, rotation: number, info: ICarInfo) {
-        super(game, renderer, style, info.sprNum + style.spriteOffsets.Car, x, y, z);
-        this.rotation = rotation;
-        this.currentSpeed = 0;
-        this.info = info;
+    constructor(game: Game, renderer: IRenderer, style: IStyle, x: number, y: number, z: number, rotation: number, info: IVehicleInfo) {
+        super(game, renderer, style, 0, x, y, z);
+        throw new Error("Not implemented");
+        //super(game, renderer, style, info.sprNum + style.spriteOffsets.Car, x, y, z);
+        //this.rotation = rotation;
+        //this.currentSpeed = 0;
+        //this.info = info;
     }
 
     public do(command: VehicleCommand, time: number) {
@@ -90,18 +92,18 @@ export default class Vehicle extends Entity {
     }
 
     public currentSpeed: number;
-    public info: ICarInfo;
+    public info: IVehicleInfo;
     public driver: Character | null = null;
     public charactersInVehicle: Character[] = [];
 
     public hitTest(x: number, y: number, z: number): boolean {
-        const tileX = Math.floor(x / 64);
-        const tileY = Math.floor(y / 64);
-        const tileZ = Math.floor(z / 64);
-        const block = this.game.map.blocks[tileX][tileY][tileZ - 1];
-        if ((block != null) && !block.flat) {
-            return block.type === 5;
-        }
+        //const tileX = Math.floor(x / 64);
+        //const tileY = Math.floor(y / 64);
+        //const tileZ = Math.floor(z / 64);
+        //const block = this.game.map.getBlock(tileX, tileY, tileZ - 1);
+        //if ((block != null) && !block.flat) {
+        //    return block.type === 5;
+        //}
 
         return false;
     }
