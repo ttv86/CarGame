@@ -1,5 +1,5 @@
 import { BinaryReader } from "../BinaryReader";
-import { IStyle, IWall, IVehicleInfo, VehicleType, ILid } from "../Interfaces";
+import { IStyle, IWall, IVehicleInfo, VehicleType, ILid, ISpriteLocation, ITextureLocation } from "../Interfaces";
 import GameMap from "./GameMap";
 
 const margin = 2;
@@ -92,7 +92,7 @@ export default class Style implements IStyle {
 
     public readonly animationInfos: readonly IAnimationInfo[] = [];
 
-    public spritePosition(spriteIndex: number): ISpriteLocation | null {
+    public getSpritePosition(spriteIndex: number): ISpriteLocation | null {
         return this.spriteInfo.get(spriteIndex) ?? null;
     }
 
@@ -702,25 +702,6 @@ interface IObjectInfo {
     aux: number;
     status: number;
     into: readonly number[];
-}
-
-export interface ITextureLocation {
-    /** Texture x. */
-    tX: number;
-    /** Texture y. */
-    tY: number;
-    /** Texture width. */
-    tW: number;
-    /** Texture height. */
-    tH: number;
-}
-
-export interface ISpriteLocation extends ITextureLocation {
-    /** Sprite width. */
-    width: number;
-
-    /** Sprite height. */
-    height: number;
 }
 
 type SpriteType = "Arrow" | "Digits" | "Boat" | "Box" | "Bus" | "Car" | "Object" | "Ped" | "Speedo" | "Tank" | "TrafficLights" | "Train" | "TrDoors" | "Bike" | "Tram" | "WBus" | "WCar" | "Ex" | "TumCar" | "TumTruck" | "Ferry";

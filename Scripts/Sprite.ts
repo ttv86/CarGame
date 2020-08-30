@@ -11,18 +11,18 @@ export default class Sprite {
     constructor(renderer: IRenderer, style: IStyle, spriteIndex: number, x: number = 0, y: number = 0) {
         this.renderer = renderer;
 
-        const position = null; // TODO: style.spritePosition(spriteIndex);
-        //if (!position) {
+        const position = style.getSpritePosition(spriteIndex);
+        if (!position) {
             // Invalid sprite. Can't draw anything.
             this.width = 0;
             this.height = 0;
             this.model = null;
             return;
-        //}
+        }
 
-        //this.width = position.width;
-        //this.height = position.height;
-        //this.model = renderer.createModelFromSprite(position, style.spriteCanvas, x, y);
+        this.width = position.width;
+        this.height = position.height;
+        this.model = renderer.createModelFromSprite(position, style.spriteImageData, x, y);
     }
 
     public render() {

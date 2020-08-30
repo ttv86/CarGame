@@ -1,5 +1,4 @@
 import Game from "../Game";
-import { ITextureLocation } from "./G1/Style";
 
 export interface IGameMap {
     readonly width: number;
@@ -74,17 +73,11 @@ export type VehicleType = "car" | "police" | "ambulance" | "train" | "tank" | "b
 export interface IStyle {
     readonly tileImageData: HTMLImageElement | HTMLCanvasElement | ImageData;
     readonly spriteImageData: HTMLImageElement | HTMLCanvasElement | ImageData;
+    getSpritePosition(spriteIndex: number): ISpriteLocation | null;
     getVehicleInfo(model: number): IVehicleInfo;
     getVehicleModelByType(type: VehicleType): number | null;
     getLidTileTexCoords(lid: ILid): ITextureLocation;
     getSideTileTexCoords(wall: IWall): ITextureLocation;
-}
-
-export interface ISpriteLocation {
-    readonly tX: number;
-    readonly tY: number;
-    readonly tW: number;
-    readonly tH: number;
 }
 
 export interface IVehicleInfo {
@@ -138,4 +131,23 @@ export enum LightLevel {
     Darken1 = 1,
     Darken2 = 2,
     Darken3 = 3,
+}
+
+export interface ITextureLocation {
+    /** Texture x. */
+    tX: number;
+    /** Texture y. */
+    tY: number;
+    /** Texture width. */
+    tW: number;
+    /** Texture height. */
+    tH: number;
+}
+
+export interface ISpriteLocation extends ITextureLocation {
+    /** Sprite width. */
+    width: number;
+
+    /** Sprite height. */
+    height: number;
 }

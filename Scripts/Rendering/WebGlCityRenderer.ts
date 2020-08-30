@@ -184,28 +184,26 @@ export default class WebGlRenderer extends WebGlBaseRenderer implements IRendere
         return result;
     }
 
-    public createModelFromSprite(spriteInfo: ISpriteLocation, modelTexture: HTMLImageElement | HTMLCanvasElement, offsetX: number = 0, offsetY: number = 0): Model {
-        throw new Error("Not implemented.");
-        // TODO:
-        //let texture = this.textureMap.get(modelTexture);
-        //if (!texture) {
-        //    texture = this.loadTexture(modelTexture);
-        //    this.textureMap.set(modelTexture, texture);
-        //}
+    public createModelFromSprite(spriteInfo: ISpriteLocation, modelTexture: HTMLImageElement | HTMLCanvasElement | ImageData, offsetX: number = 0, offsetY: number = 0): Model {
+        let texture = this.textureMap.get(modelTexture);
+        if (!texture) {
+            texture = this.loadTexture(modelTexture);
+            this.textureMap.set(modelTexture, texture);
+        }
 
-        //const w = spriteInfo.width;
-        //const h = spriteInfo.height;
-        //const modelData: IModelData = {
-        //    positions: [offsetX + 0, offsetY + 0, 0, offsetX + w, offsetY + 0, 0, offsetX + 0, offsetY + h, 0, offsetX + w, offsetY + h, 0],
-        //    texture: modelTexture,
-        //    center: { x: 0, y: 0 },
-        //    indices: [0, 1, 2, 2, 1, 3],
-        //    textureCoords: [spriteInfo.tX, spriteInfo.tY, spriteInfo.tX + spriteInfo.tW, spriteInfo.tY, spriteInfo.tX, spriteInfo.tY + spriteInfo.tH, spriteInfo.tX + spriteInfo.tW, spriteInfo.tY + spriteInfo.tH],
-        //    transparent: true,
-        //};
+        const w = spriteInfo.width;
+        const h = spriteInfo.height;
+        const modelData: IModelData = {
+            positions: [offsetX + 0, offsetY + 0, 0, offsetX + w, offsetY + 0, 0, offsetX + 0, offsetY + h, 0, offsetX + w, offsetY + h, 0],
+            texture: modelTexture,
+            center: { x: 0, y: 0 },
+            indices: [0, 1, 2, 2, 1, 3],
+            textureCoords: [spriteInfo.tX, spriteInfo.tY, spriteInfo.tX + spriteInfo.tW, spriteInfo.tY, spriteInfo.tX, spriteInfo.tY + spriteInfo.tH, spriteInfo.tX + spriteInfo.tW, spriteInfo.tY + spriteInfo.tH],
+            transparent: true,
+        };
 
-        //const result = new Model(this.gl, modelData, texture);
-        //return result;
+        const result = new Model(this.gl, modelData, texture);
+        return result;
     }
 
     public update(time: number) {
@@ -266,7 +264,7 @@ export interface IRenderer extends IBaseRenderer {
     render(textBuffer: ITextBuffer): void;
     clip(area: [number, number, number, number] | null): void;
     createModel(modelData: IModelData): void;
-    createModelFromSprite(spriteInfo: ISpriteLocation, modelTexture: HTMLImageElement | HTMLCanvasElement, offsetX?: number, offsetY?: number): Model;
+    createModelFromSprite(spriteInfo: ISpriteLocation, modelTexture: HTMLImageElement | HTMLCanvasElement | ImageData, offsetX?: number, offsetY?: number): Model;
     
 }
 
