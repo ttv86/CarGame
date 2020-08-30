@@ -31,13 +31,9 @@ export default class GameMap implements IGameMap {
         this.readNavData(reader, navDataSize);
     }
 
-    public get width(): number {
-        return 256;
-    }
-
-    public get height(): number {
-        return 256;
-    }
+    public readonly width: number = 256;
+    public readonly height: number = 256;
+    public readonly maxAltitude: number = 6;
 
     public getBlock(x: number, y: number, z: number): IBlock | null {
         if ((z >= 0) && (z < 6)) {

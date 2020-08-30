@@ -3,6 +3,7 @@ import Game from "../Game";
 export interface IGameMap {
     readonly width: number;
     readonly height: number;
+    readonly maxAltitude: number;
     readonly areas: readonly IArea[];
     readonly lights: readonly ILight[];
     getBlock(x: number, y: number, z: number): IBlock | null;

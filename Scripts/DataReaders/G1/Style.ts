@@ -310,8 +310,7 @@ export default class Style implements IStyle {
         const remapTiles = ((sideTileCount + lidTileCount + auxTileCount) * 4);
         const imageDataList: Uint8ClampedArray[] = [];
         for (let i = 0; i < remapTiles; i++) {
-            const imageData = new Uint8ClampedArray(0x4000); // Each tile is 64 pixels * 64 pixels * 4 colors.            
-            imageDataList.push(imageData);
+            imageDataList.push(new Uint8ClampedArray(0x4000)); // Each tile is 64 pixels * 64 pixels * 4 colors.            
         }
 
         const rows = tileData.length >> 8;

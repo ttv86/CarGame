@@ -62,4 +62,38 @@ export class BinaryReader {
         this.position += count;
         return result;
     }
+
+    public readByteArray(count: number): Uint8ClampedArray {
+        const result = new Uint8ClampedArray(count);
+        for (let i = 0; i < count; i++) {
+            result[i] = this.data.getUint8(this.position + i);
+        }
+
+        this.position += count;
+        return result;
+    }
+
+    public readString(length: number): string {
+        let result = "";
+        if (length >= 0) {
+            for (let i = 0; i < length; i++) {
+                const codePoint = this.data.getUint8(this.position + i);
+                result += String.fromCharCode(codePoint);
+            }
+
+            this.position += length;
+        } else {
+            while (this.position < this.length) {
+                const codePoint = this.data.getUint8(this.position);
+                this.position++;
+                if (codePoint > 0) {
+                    result += String.fromCharCode(codePoint);
+                } else {
+                    break;
+                }
+            }
+        }
+
+        return result;
+    }
 }

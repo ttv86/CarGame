@@ -1,4 +1,4 @@
-import Character, { CharacterState } from "./WorldEntities/Character";
+import Character from "./WorldEntities/Character";
 import { IRenderer } from "./Rendering/WebGlCityRenderer";
 import { IGameMap, IStyle, IVehicleInfo, IFont, IGameScript, IAudio, ITextContainer, IArea } from "./DataReaders/Interfaces";
 import Entity from "./Entity";
@@ -11,7 +11,7 @@ import SubtitleBox from "./GuiWidgets/SubtitleBox";
 import TrainSystem from "./TrainSystem";
 
 export default class Game {
-    private readonly subtitles: SubtitleBox;
+    private readonly subtitles: SubtitleBox | null = null;
     private readonly globalAudio: IAudio;
     private readonly localAudio: IAudio;
     private readonly areas: ISubArea[] = [];
@@ -22,8 +22,8 @@ export default class Game {
     public readonly texts: ITextContainer;
     public readonly renderer: IRenderer;
     public readonly keyboard: KeyboardHandler;
-    public readonly pager: Pager;
-    public readonly locationInfo: LocationInfo;
+    public readonly pager: Pager | null = null;
+    public readonly locationInfo: LocationInfo | null = null;
     public readonly triggers: Trigger[] = [];
     public player: Character | null = null;
     public vehicles: Vehicle[] = [];
@@ -59,14 +59,21 @@ export default class Game {
         // Run world initialization logic.
         this.gameScript.initialize(this);
 
-        this.pager = new Pager(this, renderer, style, pagerFont);
-        this.renderer.guiEntities.push(this.pager);
+        if (pagerFont) {
+            this.pager = new Pager(this, renderer, style, pagerFont);
+            this.renderer.guiEntities.push(this.pager);
+        }
 
-        this.locationInfo = new LocationInfo(this, renderer, style, locationFont);
-        this.renderer.guiEntities.push(this.locationInfo);
 
-        this.subtitles = new SubtitleBox(this, this.renderer, style, subtitleFont);
-        this.renderer.guiEntities.push(this.subtitles);
+        if (locationFont) {
+            this.locationInfo = new LocationInfo(this, renderer, style, locationFont);
+            this.renderer.guiEntities.push(this.locationInfo);
+        }
+
+        if (subtitleFont) {
+            this.subtitles = new SubtitleBox(this, this.renderer, style, subtitleFont);
+            this.renderer.guiEntities.push(this.subtitles);
+        }
 
         this.trainSystem = new TrainSystem(this, map, style);
 
@@ -170,6 +177,20 @@ export default class Game {
             }
 
             this.camera = [this.player.x, this.player.y + 20, this.player.z - 192 + Math.abs(this.player.vehicle?.currentSpeed ?? 0) * 32];
+        } else {
+            const speed = time * 500;
+            if (this.keyboard.isDown("up")) {
+                this.camera = [this.camera[0], this.camera[1] - speed, this.camera[2]];
+            } else if (this.keyboard.isDown("down")) {
+                this.camera = [this.camera[0], this.camera[1] + speed, this.camera[2]];
+            }
+
+            if (this.keyboard.isDown("left")) {
+                this.camera = [this.camera[0] - speed, this.camera[1], this.camera[2]];
+            } else if (this.keyboard.isDown("right")) {
+                this.camera = [this.camera[0] + speed, this.camera[1], this.camera[2]];
+            }
+            
         }
 
         let location: ISubArea | null = null;
@@ -180,7 +201,7 @@ export default class Game {
             }
         }
 
-        if (location && (location !== this.lastLocation)) {
+        if (location && this.locationInfo && (location !== this.lastLocation)) {
             this.lastLocation = location;
             this.locationInfo.showText(location.name);
         }
@@ -246,9 +267,14 @@ export default class Game {
     }
 
     public resized(): void {
-        const [ width, height ] = this.renderer.getViewSize();
-        this.locationInfo.x = (width / 2) - this.locationInfo.width;
-        this.subtitles.setLocation(width, height);
+        const [width, height] = this.renderer.getViewSize();
+        if (this.locationInfo) {
+            this.locationInfo.x = (width / 2) - this.locationInfo.width;
+        }
+
+        if (this.subtitles) {
+            this.subtitles.setLocation(width, height);
+        }
     }
 
     public keyDown(code: number) {
@@ -318,7 +344,9 @@ export default class Game {
 
     public showText(textReference: number, type: "mouth" | "phone" | "mobile"): void {
         // TODO: Not implemented.
-        this.subtitles.setText(this.texts.get(textReference.toString()) ?? "N/A");
+        if (this.subtitles) {
+            this.subtitles.setText(this.texts.get(textReference.toString()) ?? "N/A");
+        }
     }
 }
 

@@ -1,5 +1,5 @@
 import { Point } from "../Types";
-import { IGameMap, IStyle } from "../DataReaders/Interfaces";
+import { IGameMap, IStyle, TextureRotate } from "../DataReaders/Interfaces";
 import WebGlRenderer from "./WebGlCityRenderer";
 import Model, { IModelData } from "./Model";
 
@@ -58,7 +58,7 @@ export default class CityBlock {
                         "".toString();
                     }
 
-                    for (let i = 0; i < 6; i++) {
+                    for (let i = 0; i < map.maxAltitude; i++) {
                         const block = map.getBlock(x, y, i);
                         if (!block) {
                             continue;
@@ -89,36 +89,70 @@ export default class CityBlock {
                                 ...topSouthEast);
 
                             const { tX, tY, tW, tH } = style.getLidTileTexCoords(block.lid);
-                            switch (block.lid.rotate) {
-                                case 0:
-                                default:
-                                    modelData.textureCoords.push(
-                                        tX, tY,
-                                        tX + tW, tY,
-                                        tX, tY + tH,
-                                        tX + tW, tY + tH);
-                                    break;
-                                case 1:
-                                    modelData.textureCoords.push(
-                                        tX, tY + tH,
-                                        tX, tY,
-                                        tX + tW, tY + tH,
-                                        tX + tW, tY);
-                                    break;
-                                case 2:
-                                    modelData.textureCoords.push(
-                                        tX + tW, tY + tH,
-                                        tX, tY + tH,
-                                        tX + tW, tY,
-                                        tX, tY);
-                                    break;
-                                case 3:
-                                    modelData.textureCoords.push(
-                                        tX + tW, tY,
-                                        tX + tW, tY + tH,
-                                        tX, tY,
-                                        tX, tY + tH);
-                                    break;
+                            if (block.lid.flip) {
+                                switch (block.lid.rotate) {
+                                    case TextureRotate.NoRotate:
+                                    default:
+                                        modelData.textureCoords.push(
+                                            tX + tW, tY,
+                                            tX, tY,
+                                            tX + tW, tY + tH,
+                                            tX, tY + tH);
+                                        break;
+                                    case TextureRotate.Rotate90deg:
+                                        modelData.textureCoords.push(
+                                            tX, tY,
+                                            tX, tY + tH,
+                                            tX + tW, tY,
+                                            tX + tW, tY + tH);
+                                        break;
+                                    case TextureRotate.Rotate180deg:
+                                        modelData.textureCoords.push(
+                                            tX, tY + tH,
+                                            tX + tW, tY + tH,
+                                            tX, tY,
+                                            tX + tW, tY);
+                                        break;
+                                    case TextureRotate.Rotate270deg:
+                                        modelData.textureCoords.push(
+                                            tX + tW, tY + tH,
+                                            tX + tW, tY,
+                                            tX, tY + tH,
+                                            tX, tY);
+                                        break;
+                                }
+                            } else {
+                                switch (block.lid.rotate) {
+                                    case TextureRotate.NoRotate:
+                                    default:
+                                        modelData.textureCoords.push(
+                                            tX, tY,
+                                            tX + tW, tY,
+                                            tX, tY + tH,
+                                            tX + tW, tY + tH);
+                                        break;
+                                    case TextureRotate.Rotate90deg:
+                                        modelData.textureCoords.push(
+                                            tX, tY + tH,
+                                            tX, tY,
+                                            tX + tW, tY + tH,
+                                            tX + tW, tY);
+                                        break;
+                                    case TextureRotate.Rotate180deg:
+                                        modelData.textureCoords.push(
+                                            tX + tW, tY + tH,
+                                            tX, tY + tH,
+                                            tX + tW, tY,
+                                            tX, tY);
+                                        break;
+                                    case TextureRotate.Rotate270deg:
+                                        modelData.textureCoords.push(
+                                            tX + tW, tY,
+                                            tX + tW, tY + tH,
+                                            tX, tY,
+                                            tX, tY + tH);
+                                        break;
+                                }
                             }
 
                             modelData.indices.push(start + 0, start + 1, start + 2, start + 3, start + 2, start + 1);
