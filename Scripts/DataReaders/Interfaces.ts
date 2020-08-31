@@ -29,37 +29,37 @@ export interface IWall {
     /** Index of texture from attached style file. */
     readonly tileIndex: number;
 
-    /** Whether player can walk through this wall. */
-    readonly playerWall: boolean;
+    /** Index of texture from attached style file. */
+    readonly backTileIndex?: number;
 
-    /** Whether bullets can go through this wall. For example cahin link fence can be penetrated by bullets, but not players. */
-    readonly bulletWall: boolean;
+    /** Adjust tile light level. */
+    readonly lightLevel?: LightLevel;
+
+    /** Whether objects can go through this wall. */
+    readonly collision?: Collision;
 
     /** Whether render texture as transparent instead of opaque. */
-    readonly transparent: boolean;
+    readonly transparent?: boolean;
 
-    /** Texture should be flipped on this wall. */
-    readonly flip: boolean;
-
-    /** Rotation of texture. */
-    readonly rotate: TextureRotate;
+    /** Transformation of texture. */
+    readonly transform?: TextureTransform;
 }
 
 export interface ILid {
-    /** Index of texture from attached style file. */
+    /** Texture that shows outside of the block. Index of texture from attached style file. */
     readonly tileIndex: number;
 
     /** Adjust tile light level. */
-    readonly lightLevel: LightLevel;
+    readonly lightLevel?: LightLevel;
+
+    /** Whether objects can go through this the lid. */
+    readonly collision?: Collision;
 
     /** Whether render texture as transparent instead of opaque. */
-    readonly transparent: boolean;
+    readonly transparent?: boolean;
 
-    /** Texture should be flipped on this wall. */
-    readonly flip: boolean;
-
-    /** Rotation of texture. */
-    readonly rotate: TextureRotate;
+    /** Transformation of texture. */
+    readonly transform?: TextureTransform;
 }
 
 export interface IArea {
@@ -120,11 +120,15 @@ export interface ITextContainer {
     getSpecial(code: SpecialTextCode): string;
 }
 
-export enum TextureRotate {
-    NoRotate = 0,
+export enum TextureTransform {
+    NoTransform = 0,
     Rotate90deg = 1,
     Rotate180deg = 2,
     Rotate270deg = 3,
+    Mirror = 4,
+    Rotate90degAndMirror = 5,
+    Rotate180degAndMirror = 6,
+    Rotate270degAndMirror = 7,
 }
 
 export enum LightLevel {
@@ -132,6 +136,20 @@ export enum LightLevel {
     Darken1 = 1,
     Darken2 = 2,
     Darken3 = 3,
+}
+
+export enum Collision {
+    /** Everything can go through this. */
+    NoCollision,
+
+    /** Vehicles collide, but smaller objects can go though. */
+    VehicleCollision,
+
+    /** Characters and vehicles collide, but small objects can go through. */
+    CharacterCollision,
+
+    /** Nothing can go through. */
+    Solid,
 }
 
 export interface ITextureLocation {

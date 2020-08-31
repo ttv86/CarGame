@@ -1,4 +1,4 @@
-import { IGameMap, IBlock, IWall, ILid, ILight } from "../Interfaces";
+import { IGameMap, IBlock, IWall, ILid, ILight, Collision, TextureTransform } from "../Interfaces";
 import { BinaryReader } from "../BinaryReader";
 
 export default class GameMap implements IGameMap {
@@ -216,48 +216,61 @@ class MapBlock implements IBlock {
         this.flipLeftRight = ((typeMapExt >> 6) & 1) !== 0;
         this.railway = ((typeMapExt >> 7) & 1) !== 0;
 
-        this.left = left ? {
-            tileIndex: left,
-            playerWall: true,
-            bulletWall: true,
-            transparent: this.flat,
-            flip: this.flipLeftRight,
-            rotate: 0,
-        } : null;
+        if (this.flat) {
+            this.left = left ? {
+                tileIndex: left,
+                backTileIndex: right,
+                collision: Collision.Solid,
+                transparent: this.flat,
+                transform: this.flipLeftRight ? TextureTransform.Mirror : TextureTransform.NoTransform,
+            } : null;
 
-        this.right = right ? {
-            tileIndex: right,
-            playerWall: true,
-            bulletWall: true,
-            transparent: this.flat,
-            flip: this.flipLeftRight,
-            rotate: 0,
-        } : null;
+            this.right = null;
 
-        this.top = top ? {
-            tileIndex: top,
-            playerWall: true,
-            bulletWall: true,
-            transparent: this.flat,
-            flip: this.flipTopBottom,
-            rotate: 0,
-        } : null;
+            this.top = top ? {
+                tileIndex: top,
+                backTileIndex: bottom,
+                collision: Collision.Solid,
+                transparent: this.flat,
+                transform: this.flipTopBottom ? TextureTransform.Mirror : TextureTransform.NoTransform,
+            } : null;
 
-        this.bottom = bottom ? {
-            tileIndex: bottom,
-            playerWall: true,
-            bulletWall: true,
-            transparent: this.flat,
-            flip: this.flipTopBottom,
-            rotate: 0,
-        } : null;
+            this.bottom = null;
+        } else {
+            this.left = left ? {
+                tileIndex: left,
+                collision: Collision.Solid,
+                transparent: this.flat,
+                transform: this.flipLeftRight ? TextureTransform.Mirror : TextureTransform.NoTransform,
+            } : null;
+
+            this.right = right ? {
+                tileIndex: right,
+                collision: Collision.Solid,
+                transparent: this.flat,
+                transform: this.flipLeftRight ? TextureTransform.Mirror : TextureTransform.NoTransform,
+            } : null;
+
+            this.top = top ? {
+                tileIndex: top,
+                collision: Collision.Solid,
+                transparent: this.flat,
+                transform: this.flipTopBottom ? TextureTransform.Mirror : TextureTransform.NoTransform,
+            } : null;
+
+            this.bottom = bottom ? {
+                tileIndex: bottom,
+                collision: Collision.Solid,
+                transparent: this.flat,
+                transform: this.flipTopBottom ? TextureTransform.Mirror : TextureTransform.NoTransform,
+            } : null;
+        }
 
         this.lid = lid ? {
             tileIndex: lid,
             lightLevel: this.remap,
             transparent: this.flat,
-            flip: false,
-            rotate: this.lidRotation,
+            transform: this.lidRotation,
         } : null;
     }
 

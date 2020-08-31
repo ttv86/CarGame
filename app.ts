@@ -4,7 +4,16 @@ import { createReadStream, existsSync, readFileSync, readFile, statSync } from "
 import { extname, join } from "path";
 
 // Set this to where original game is installed.
-const gameDataDir = readFileSync("path.user", "utf-8");
+let userSettings: { dataPaths: Record<string, string> } = { dataPaths: {} };
+
+if (existsSync("path.user")) {
+    const userDataContent = readFileSync("path.user", "utf-8");
+    try {
+        userSettings = JSON.parse(userDataContent);
+    } catch (error) {
+        console.log(`Error reading user settings: ${error.message}`);
+    }
+}
 
 if (app) {
     // Electron found. Create window using it.
@@ -35,35 +44,35 @@ if (app) {
         win.maximize();
         win.show();
 
-        ipcMain.on("get-gameDataDir", (event: Electron.IpcMainEvent) => {
-            event.sender.send("got-gameDataDir", gameDataDir);
-        });
+        //ipcMain.on("get-gameDataDir", (event: Electron.IpcMainEvent) => {
+        //    event.sender.send("got-gameDataDir", gameDataDir);
+        //});
 
-        ipcMain.on("require-file", (event: Electron.IpcMainEvent, filename: string) => {
-            // Check ".." so files outside data directory aren't read.
-            filename = decodeURI(filename);
-            if (gameDataDir && (filename.indexOf("..") === -1)) {
-                const file = join(gameDataDir, filename);
-                if (existsSync(file)) {
-                    if (!statSync(file).isFile()) {
-                        event.sender.send("got-file", null);
-                        return;
-                    }
+        //ipcMain.on("require-file", (event: Electron.IpcMainEvent, filename: string) => {
+        //    // Check ".." so files outside data directory aren't read.
+        //    filename = decodeURI(filename);
+        //    if (gameDataDir && (filename.indexOf("..") === -1)) {
+        //        const file = join(gameDataDir, filename);
+        //        if (existsSync(file)) {
+        //            if (!statSync(file).isFile()) {
+        //                event.sender.send("got-file", null);
+        //                return;
+        //            }
 
-                    readFile(file, (err, data) => {
-                        if (data) {
-                            const result = new DataView(data);
-                            event.sender.send("got-file", result);
-                        } else {
-                            event.sender.send("got-file", null);
-                        }
-                    })
-                    return;
-                }
-            }
+        //            readFile(file, (err, data) => {
+        //                if (data) {
+        //                    const result = new DataView(data);
+        //                    event.sender.send("got-file", result);
+        //                } else {
+        //                    event.sender.send("got-file", null);
+        //                }
+        //            })
+        //            return;
+        //        }
+        //    }
 
-            event.sender.send("got-file", null);
-        });
+        //    event.sender.send("got-file", null);
+        //});
     }
 
     app.whenReady().then(createWindow);
@@ -82,16 +91,20 @@ if (app) {
     createServer((req: IncomingMessage, res: ServerResponse) => {
         let url = req.url === "/" ? "index.html" : decodeURI(req.url ?? "index.html");
         // Check ".." so files outside data directory aren't read.
-        if ((!gameDataDir) || (url.indexOf("..") > -1)) {
+        if (url.indexOf("..") > -1) {
             res.writeHead(404);
             res.end();
             return;
         }
 
         let dir = join(__dirname, "wwwroot");
-        if (url.indexOf("/data/") === 0) {
-            dir = gameDataDir;
-            url = url.substring(5);
+        for (const key in userSettings.dataPaths) {
+            const urlPart = `/${key}/`
+            if (url.indexOf(urlPart) === 0) {
+                dir = userSettings.dataPaths[key];
+                url = url.substring(urlPart.length - 1);
+                break;
+            }
         }
 
         let fileExt = extname(url);

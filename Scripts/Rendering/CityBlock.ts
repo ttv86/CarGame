@@ -1,5 +1,5 @@
 import { Point } from "../Types";
-import { IGameMap, IStyle, TextureRotate } from "../DataReaders/Interfaces";
+import { IGameMap, IStyle, TextureTransform, IBlock, IWall, ILid, ITextureLocation } from "../DataReaders/Interfaces";
 import WebGlRenderer from "./WebGlCityRenderer";
 import Model, { IModelData } from "./Model";
 
@@ -43,255 +43,39 @@ export default class CityBlock {
 
         for (let f = 0; f < 2; f++) {
             let animTexCoords: number[] = [];
-            const modelData = {
+            const modelData: IModelDataBuilder = {
                 center: { x: (xx + (blockSize / 2)) * 64, y: (yy + (blockSize / 2)) * 64 },
-                positions: [] as number[],
-                textureCoords: [] as number[],
-                indices: [] as number[],
+                positions: [],
+                textureCoords: [],
+                indices: [],
                 texture: bigTexture,
                 transparent: f === 1,
             }
 
             for (let y = yy; y < yy + blockSize; y++) {
                 for (let x = xx; x < xx + blockSize; x++) {
-                    if (x == 104 && y === 118) {
-                        "".toString();
-                    }
-
                     for (let i = 0; i < map.maxAltitude; i++) {
                         const block = map.getBlock(x, y, i);
                         if (!block) {
                             continue;
                         }
 
-                        const transparentPass = f === 1;
-                        const topNorthWest: Point = [(x) * 64, (y) * 64, (i) * 64];
-                        const topNorthEast: Point = [(x + 1) * 64, (y) * 64, (i) * 64];
-                        const topSouthWest: Point = [(x) * 64, (y + 1) * 64, (i) * 64];
-                        const topSouthEast: Point = [(x + 1) * 64, (y + 1) * 64, (i) * 64];
-                        const bottomNorthWest: Point = [(x) * 64, (y) * 64, (i + 1) * 64];
-                        const bottomNorthEast: Point = [(x + 1) * 64, (y) * 64, (i + 1) * 64];
-                        const bottomSouthWest: Point = [(x) * 64, (y + 1) * 64, (i + 1) * 64];
+                        const topNorthWest: Point = [x * 64, y * 64, i * 64];
+                        const topNorthEast: Point = [(x + 1) * 64, y * 64, i * 64];
+                        const topSouthWest: Point = [x * 64, (y + 1) * 64, i * 64];
+                        const topSouthEast: Point = [(x + 1) * 64, (y + 1) * 64, i * 64];
+                        const bottomNorthWest: Point = [x * 64, y * 64, (i + 1) * 64];
+                        const bottomNorthEast: Point = [(x + 1) * 64, y * 64, (i + 1) * 64];
+                        const bottomSouthWest: Point = [x * 64, (y + 1) * 64, (i + 1) * 64];
                         const bottomSouthEast: Point = [(x + 1) * 64, (y + 1) * 64, (i + 1) * 64];
 
-                        adjustSlope(block.slope, topNorthWest, topNorthEast, topSouthWest, topSouthEast);
+                        adjustSlope(block.slope, topNorthWest, topNorthEast, topSouthWest, topSouthEast, bottomNorthWest, bottomNorthEast, bottomSouthWest, bottomSouthEast);
 
-                        if (block.lid && (block.lid.transparent === transparentPass)) {
-                            if (animLidBlocks.indexOf(block.lid.tileIndex) > -1) {
-                                animTexCoords.push(modelData.textureCoords.length);
-                            }
-
-                            const start = modelData.positions.length / 3;
-                            modelData.positions.push(
-                                ...topNorthWest,
-                                ...topNorthEast,
-                                ...topSouthWest,
-                                ...topSouthEast);
-
-                            const { tX, tY, tW, tH } = style.getLidTileTexCoords(block.lid);
-                            if (block.lid.flip) {
-                                switch (block.lid.rotate) {
-                                    case TextureRotate.NoRotate:
-                                    default:
-                                        modelData.textureCoords.push(
-                                            tX + tW, tY,
-                                            tX, tY,
-                                            tX + tW, tY + tH,
-                                            tX, tY + tH);
-                                        break;
-                                    case TextureRotate.Rotate90deg:
-                                        modelData.textureCoords.push(
-                                            tX, tY,
-                                            tX, tY + tH,
-                                            tX + tW, tY,
-                                            tX + tW, tY + tH);
-                                        break;
-                                    case TextureRotate.Rotate180deg:
-                                        modelData.textureCoords.push(
-                                            tX, tY + tH,
-                                            tX + tW, tY + tH,
-                                            tX, tY,
-                                            tX + tW, tY);
-                                        break;
-                                    case TextureRotate.Rotate270deg:
-                                        modelData.textureCoords.push(
-                                            tX + tW, tY + tH,
-                                            tX + tW, tY,
-                                            tX, tY + tH,
-                                            tX, tY);
-                                        break;
-                                }
-                            } else {
-                                switch (block.lid.rotate) {
-                                    case TextureRotate.NoRotate:
-                                    default:
-                                        modelData.textureCoords.push(
-                                            tX, tY,
-                                            tX + tW, tY,
-                                            tX, tY + tH,
-                                            tX + tW, tY + tH);
-                                        break;
-                                    case TextureRotate.Rotate90deg:
-                                        modelData.textureCoords.push(
-                                            tX, tY + tH,
-                                            tX, tY,
-                                            tX + tW, tY + tH,
-                                            tX + tW, tY);
-                                        break;
-                                    case TextureRotate.Rotate180deg:
-                                        modelData.textureCoords.push(
-                                            tX + tW, tY + tH,
-                                            tX, tY + tH,
-                                            tX + tW, tY,
-                                            tX, tY);
-                                        break;
-                                    case TextureRotate.Rotate270deg:
-                                        modelData.textureCoords.push(
-                                            tX + tW, tY,
-                                            tX + tW, tY + tH,
-                                            tX, tY,
-                                            tX, tY + tH);
-                                        break;
-                                }
-                            }
-
-                            modelData.indices.push(start + 0, start + 1, start + 2, start + 3, start + 2, start + 1);
-                        }
-
-                        if (block.bottom && (block.bottom.transparent === transparentPass)) {
-                            if (animSideBlocks.indexOf(block.bottom.tileIndex) > -1) {
-                                animTexCoords.push(modelData.textureCoords.length);
-                            }
-
-                            const start = modelData.positions.length / 3;
-                            if (block.bottom.transparent) {
-                                modelData.positions.push(
-                                    ...topNorthWest,
-                                    ...topNorthEast,
-                                    ...bottomNorthWest,
-                                    ...bottomNorthEast);
-                            } else {
-                                modelData.positions.push(
-                                    ...topSouthWest,
-                                    ...topSouthEast,
-                                    ...bottomSouthWest,
-                                    ...bottomSouthEast);
-                            }
-
-                            const { tX, tY, tW, tH } = style.getSideTileTexCoords(block.bottom);
-                            if (block.bottom.flip) {
-                                modelData.textureCoords.push(
-                                    tX + tW, tY,
-                                    tX, tY,
-                                    tX + tW, tY + tH,
-                                    tX, tY + tH);
-                            } else {
-                                modelData.textureCoords.push(
-                                    tX, tY,
-                                    tX + tW, tY,
-                                    tX, tY + tH,
-                                    tX + tW, tY + tH);
-                            }
-
-                            modelData.indices.push(start + 0, start + 1, start + 2, start + 3, start + 2, start + 1);
-                        }
-
-                        if (block.right && (block.right.transparent === transparentPass)) {
-                            if (animSideBlocks.indexOf(block.right.tileIndex) > -1) {
-                                animTexCoords.push(modelData.textureCoords.length);
-                            }
-
-                            const start = modelData.positions.length / 3;
-                            if (block.right.transparent) {
-                                modelData.positions.push(
-                                    ...topSouthWest,
-                                    ...topNorthWest,
-                                    ...bottomSouthWest,
-                                    ...bottomNorthWest);
-                            } else {
-                                modelData.positions.push(
-                                    ...topSouthEast,
-                                    ...topNorthEast,
-                                    ...bottomSouthEast,
-                                    ...bottomNorthEast);
-                            }
-
-                            const { tX, tY, tW, tH } = style.getSideTileTexCoords(block.right);
-                            if (block.right.flip) {
-                                modelData.textureCoords.push(
-                                    tX + tW, tY,
-                                    tX, tY,
-                                    tX + tW, tY + tH,
-                                    tX, tY + tH);
-                            } else {
-                                modelData.textureCoords.push(
-                                    tX, tY,
-                                    tX + tW, tY,
-                                    tX, tY + tH,
-                                    tX + tW, tY + tH);
-                            }
-
-                            modelData.indices.push(start + 0, start + 1, start + 2, start + 3, start + 2, start + 1);
-                        }
-
-                        if (block.left && (block.left.transparent === transparentPass)) {
-                            if (animSideBlocks.indexOf(block.left.tileIndex) > -1) {
-                                animTexCoords.push(modelData.textureCoords.length);
-                            }
-                            const start = modelData.positions.length / 3;
-                            modelData.positions.push(
-                                ...topNorthWest,
-                                ...topSouthWest,
-                                ...bottomNorthWest,
-                                ...bottomSouthWest);
-
-                            const { tX, tY, tW, tH } = style.getSideTileTexCoords(block.left);
-
-                            if (block.left.flip) {
-                                modelData.textureCoords.push(
-                                    tX + tW, tY,
-                                    tX, tY,
-                                    tX + tW, tY + tH,
-                                    tX, tY + tH);
-                            } else {
-                                modelData.textureCoords.push(
-                                    tX, tY,
-                                    tX + tW, tY,
-                                    tX, tY + tH,
-                                    tX + tW, tY + tH);
-                            }
-
-                            modelData.indices.push(start + 0, start + 1, start + 2, start + 3, start + 2, start + 1);
-                        }
-
-                        if (block.top && (block.top.transparent === transparentPass)) {
-                            if (animSideBlocks.indexOf(block.top.tileIndex) > -1) {
-                                animTexCoords.push(modelData.textureCoords.length);
-                            }
-                            const start = modelData.positions.length / 3;
-                            modelData.positions.push(
-                                ...topNorthEast,
-                                ...topNorthWest,
-                                ...bottomNorthEast,
-                                ...bottomNorthWest);
-
-                            const { tX, tY, tW, tH } = style.getSideTileTexCoords(block.top);
-                            if (block.top.flip) {
-                                modelData.textureCoords.push(
-                                    tX + tW, tY,
-                                    tX, tY,
-                                    tX + tW, tY + tH,
-                                    tX, tY + tH);
-                            } else {
-                                modelData.textureCoords.push(
-                                    tX, tY,
-                                    tX + tW, tY,
-                                    tX, tY + tH,
-                                    tX + tW, tY + tH);
-                            }
-
-                            modelData.indices.push(start + 0, start + 1, start + 2, start + 3, start + 2, start + 1);
-                        }
+                        this.addLid(block.lid, topNorthWest, topNorthEast, topSouthWest, topSouthEast, modelData);
+                        this.addSide(block.bottom, topSouthWest, topSouthEast, bottomSouthWest, bottomSouthEast, modelData);
+                        this.addSide(block.right, topSouthEast, topNorthEast, bottomSouthEast, bottomNorthEast, modelData);
+                        this.addSide(block.left, topNorthWest, topSouthWest, bottomNorthWest, bottomSouthWest, modelData);
+                        this.addSide(block.top, topNorthEast, topNorthWest, bottomNorthEast, bottomNorthWest, modelData);
                     }
                 }
             }
@@ -317,6 +101,125 @@ export default class CityBlock {
             //        this.flatTextureCoords = animTexCoords;
             //    }
             //}
+        }
+    }
+
+    private addLid(lid: ILid | null, point1: Point, point2: Point, point3: Point, point4: Point, modelData: IModelDataBuilder) {
+        if (lid && (lid.transparent === modelData.transparent)) {
+            // TODO:
+            //if (animLidBlocks.indexOf(lid.tileIndex) > -1) {
+            //    animTexCoords.push(modelData.textureCoords.length);
+            //}
+
+            const start = modelData.positions.length / 3;
+            modelData.positions.push(
+                ...point1,
+                ...point2,
+                ...point3,
+                ...point4);
+
+            this.addTextureCoords(this.style.getLidTileTexCoords(lid), modelData.textureCoords, lid.transform);
+
+            if (point1[0] == point2[0]) {
+                if (point1[0] == point3[0]) {
+                    modelData.indices.push(start + 3, start + 2, start + 0);
+                } else {
+                    modelData.indices.push(start + 3, start + 2, start + 1);
+                }
+            } else if (point3[0] === point4[0]) {
+                if (point2[0] == point4[0]) {
+                    modelData.indices.push(start + 0, start + 1, start + 3);
+                } else {
+                    modelData.indices.push(start + 0, start + 1, start + 2);
+                }
+            } else {
+                modelData.indices.push(start + 0, start + 1, start + 2, start + 3, start + 2, start + 1);
+            }
+        }
+    }
+
+    private addSide(side: IWall | null, point1: Point, point2: Point, point3: Point, point4: Point, modelData: IModelDataBuilder) {
+        if (side && (side.transparent === modelData.transparent)) {
+            // TODO:
+            //if (animSideBlocks.indexOf(side.tileIndex) > -1) {
+            //    animTexCoords.push(modelData.textureCoords.length);
+            //}
+
+            const start = modelData.positions.length / 3;
+            modelData.positions.push(
+                ...point1,
+                ...point2,
+                ...point3,
+                ...point4);
+
+            this.addTextureCoords(this.style.getSideTileTexCoords(side), modelData.textureCoords, side.transform);
+            modelData.indices.push(start + 0, start + 1, start + 2, start + 3, start + 2, start + 1);
+            if (side.backTileIndex !== void 0) {
+                this.addSide({ ...side, tileIndex: side.backTileIndex, backTileIndex: void 0 }, point2, point1, point4, point3, modelData);
+            }
+        }
+    }
+
+    private addTextureCoords(textureLocation: ITextureLocation, textureCoords: number[], rotate: TextureTransform | undefined) {
+        const { tX, tY, tW, tH } = textureLocation;
+        switch (rotate) {
+            default:
+            case TextureTransform.NoTransform:
+                textureCoords.push(
+                    tX, tY,
+                    tX + tW, tY,
+                    tX, tY + tH,
+                    tX + tW, tY + tH);
+                break;
+            case TextureTransform.Rotate90deg:
+                textureCoords.push(
+                    tX, tY + tH,
+                    tX, tY,
+                    tX + tW, tY + tH,
+                    tX + tW, tY);
+                break;
+            case TextureTransform.Rotate180deg:
+                textureCoords.push(
+                    tX + tW, tY + tH,
+                    tX, tY + tH,
+                    tX + tW, tY,
+                    tX, tY);
+                break;
+            case TextureTransform.Rotate270deg:
+                textureCoords.push(
+                    tX + tW, tY,
+                    tX + tW, tY + tH,
+                    tX, tY,
+                    tX, tY + tH);
+                break;
+            case TextureTransform.Mirror:
+                textureCoords.push(
+                    tX + tW, tY,
+                    tX, tY,
+                    tX + tW, tY + tH,
+                    tX, tY + tH);
+                break;
+            case TextureTransform.Rotate90degAndMirror:
+                textureCoords.push(
+                    tX, tY,
+                    tX, tY + tH,
+                    tX + tW, tY,
+                    tX + tW, tY + tH);
+                break;
+            case TextureTransform.Rotate180degAndMirror:
+                textureCoords.push(
+                    tX, tY + tH,
+                    tX + tW, tY + tH,
+                    tX, tY,
+                    tX + tW, tY);
+                break;
+            case TextureTransform.Rotate270degAndMirror:
+                textureCoords.push(
+                    tX + tW, tY + tH,
+                    tX + tW, tY,
+                    tX, tY + tH,
+                    tX, tY);
+                break;
         }
     }
 
@@ -357,41 +260,106 @@ export default class CityBlock {
     }
 }
 
-function adjustSlope(slope: number, northWest: Point, northEast: Point, southWest: Point, southEast: Point) {
-    let up: [Point, Point];
-    let down: [Point, Point];
-    if (((slope >= 1) && (slope <= 2)) || ((slope >= 9) && (slope <= 16)) || (slope == 41)) {
-        up = [northEast, northWest];
-        down = [southEast, southWest];
-    } else if (((slope >= 3) && (slope <= 4)) || ((slope >= 17) && (slope <= 24)) || (slope == 42)) {
-        up = [southEast, southWest];
-        down = [northEast, northWest];
-    } else if (((slope >= 5) && (slope <= 6)) || ((slope >= 25) && (slope <= 32)) || (slope == 43)) {
-        up = [northWest, southWest];
-        down = [northEast, southEast];
-    } else if (((slope >= 7) && (slope <= 8)) || ((slope >= 33) && (slope <= 40)) || (slope == 44)) {
-        up = [northEast, southEast];
-        down = [northWest, southWest];
-    } else {
+interface IModelDataBuilder {
+    center: { x: number, y: number };
+    positions: number[];
+    textureCoords: number[];
+    indices: number[];
+    texture: HTMLCanvasElement | HTMLImageElement | ImageData;
+    transparent: boolean;
+}
+
+function adjustSlope(
+    slope: number,
+    topNorthWest: Point, topNorthEast: Point, topSouthWest: Point, topSouthEast: Point,
+    bottomNorthWest: Point, bottomNorthEast: Point, bottomSouthWest: Point, bottomSouthEast: Point) {
+    if (slope == 0) {
+        return;
+    } else if (slope < 45) {
+        let up: [Point, Point];
+        let down: [Point, Point];
+        if (((slope >= 1) && (slope <= 2)) || ((slope >= 9) && (slope <= 16)) || (slope == 41)) {
+            up = [topNorthEast, topNorthWest];
+            down = [topSouthEast, topSouthWest];
+        } else if (((slope >= 3) && (slope <= 4)) || ((slope >= 17) && (slope <= 24)) || (slope == 42)) {
+            up = [topSouthEast, topSouthWest];
+            down = [topNorthEast, topNorthWest];
+        } else if (((slope >= 5) && (slope <= 6)) || ((slope >= 25) && (slope <= 32)) || (slope == 43)) {
+            up = [topNorthWest, topSouthWest];
+            down = [topNorthEast, topSouthEast];
+        } else if (((slope >= 7) && (slope <= 8)) || ((slope >= 33) && (slope <= 40)) || (slope == 44)) {
+            up = [topNorthEast, topSouthEast];
+            down = [topNorthWest, topSouthWest];
+        } else {
+            return;
+        }
+
+        let parts
+        if ((slope >= 1) && (slope <= 8)) {
+            parts = 2;
+        } else if ((slope >= 9) && (slope <= 40)) {
+            parts = 8;
+        } else if ((slope >= 41) && (slope <= 44)) {
+            parts = 1;
+        } else {
+            return;
+        }
+
+        const level = parts - ((slope - 1) % parts);
+        const upper = (level / parts) * 64;
+        const lower = ((level - 1) / parts) * 64;
+        up[0][2] += lower;
+        up[1][2] += lower;
+        down[0][2] += upper;
+        down[1][2] += upper;
+        return;
+    } else if (slope === 45) {
+        topNorthWest[0] = topNorthEast[0];
+        bottomNorthWest[0] = bottomNorthEast[0];
+        return;
+    } else if (slope === 46) {
+        topNorthEast[0] = topNorthWest[0];
+        bottomNorthEast[0] = bottomNorthWest[0];
+        return;
+    } else if (slope === 47) {
+        topSouthWest[0] = topSouthEast[0];
+        bottomSouthWest[0] = bottomSouthEast[0];
+        return;
+    } else if (slope === 48) {
+        topSouthEast[0] = topSouthWest[0];
+        bottomSouthEast[0] = bottomSouthWest[0];
         return;
     }
 
-    let parts
-    if ((slope >= 1) && (slope <= 8)) {
-        parts = 2;
-    } else if ((slope >= 9) && (slope <= 40)) {
-        parts = 8;
-    } else if ((slope >= 41) && (slope <= 44)) {
-        parts = 1;
-    } else {
-        return;
+    if ((slope === 53) || (slope === 57) || (slope === 60)) {
+        // short left
+        topNorthEast[0] -= 40;
+        topSouthEast[0] -= 40;
+        bottomNorthEast[0] -= 40;
+        bottomSouthEast[0] -= 40;
     }
 
-    const level = parts - ((slope - 1) % parts);
-    const upper = (level / parts) * 64;
-    const lower = ((level - 1) / parts) * 64;
-    up[0][2] += lower;
-    up[1][2] += lower;
-    down[0][2] += upper;
-    down[1][2] += upper;
+    if ((slope === 54) || (slope === 58) || (slope === 59)) {
+        // short right
+        topNorthWest[0] += 40;
+        topSouthWest[0] += 40;
+        bottomNorthWest[0] += 40;
+        bottomSouthWest[0] += 40;
+    }
+
+    if ((slope === 55) || (slope === 57) || (slope === 58)) {
+        // short top
+        topSouthEast[1] -= 40;
+        topSouthWest[1] -= 40;
+        bottomSouthEast[1] -= 40;
+        bottomSouthWest[1] -= 40;
+    }
+
+    if ((slope === 56) || (slope === 59) || (slope === 60)) {
+        // short bottom
+        topNorthEast[1] += 40;
+        topNorthWest[1] += 40;
+        bottomNorthEast[1] += 40;
+        bottomNorthWest[1] += 40;
+    }
 }

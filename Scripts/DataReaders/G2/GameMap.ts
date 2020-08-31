@@ -1,4 +1,4 @@
-import { IGameMap, ILight, IArea, IBlock, ILid, IWall } from "../Interfaces";
+import { IGameMap, ILight, IArea, IBlock, ILid, IWall, Collision, TextureTransform } from "../Interfaces";
 import { BinaryReader } from "../BinaryReader";
 
 export default class GameMap implements IGameMap {
@@ -105,37 +105,56 @@ export default class GameMap implements IGameMap {
 function createBlock(info: { left: number, right: number, top: number, bottom: number, lid: number, arrows: number, slope: number }): IBlock {
     return {
         lid: decodeLid(info.lid),
-        top: decodeWall(info.top),
-        left: decodeWall(info.left),
-        right: decodeWall(info.right),
-        bottom: decodeWall(info.bottom),
+        top: decodeWall(info.top, info.bottom),
+        left: decodeWall(info.left, info.right),
+        right: decodeWall(info.right, info.left),
+        bottom: decodeWall(info.bottom, info.top),
         slope: info.slope >> 2 & 63,
     };
 }
 
 function decodeLid(value: number): ILid | null {
     if (value > 0) {
+        const transform: TextureTransform = ((value >> 11) & 4) | ((value >> 14) & 3);
         return {
             tileIndex: value & 1023,
             lightLevel: (value >> 10) & 3,
+            collision: Collision.Solid,
             transparent: ((value >> 12) & 1) == 1,
-            flip: ((value >> 13) & 1) == 1,
-            rotate: (value >> 14) & 3,
+            transform,
         };
     }
 
     return null;
 }
 
-function decodeWall(value: number): IWall | null {
+function decodeWall(value: number, reverse: number): IWall | null {
     if (value > 0) {
+        const thisTransparent = ((value >> 12) & 1) == 1;
+        const reverseTransparent = ((reverse >> 12) & 1) === 1;
+        if (reverseTransparent && !thisTransparent) {
+            return null;
+        }
+
+        let backTileIndex: number | undefined = void 0;
+        if (thisTransparent && ((reverse & 1023) !== 0)) {
+            backTileIndex = reverse & 1023;
+        }
+
+        const transform: TextureTransform = ((value >> 11) & 4) | ((value >> 14) & 3);
+        let collision: Collision = Collision.NoCollision;
+        if ((value >> 10) & 1) {
+            collision = Collision.Solid;
+        } else if ((value >> 11) & 1) {
+            collision = Collision.CharacterCollision;
+        }
+
         return {
             tileIndex: value & 1023,
-            bulletWall: ((value >> 10) & 1) == 1,
-            playerWall: ((value >> 11) & 1) == 1,
-            transparent: ((value >> 12) & 1) == 1,
-            flip: ((value >> 13) & 1) == 1,
-            rotate: (value >> 14) & 3,
+            backTileIndex,
+            collision,
+            transform,
+            transparent: thisTransparent,
         };
     }
 

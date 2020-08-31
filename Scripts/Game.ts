@@ -27,7 +27,8 @@ export default class Game {
     public readonly triggers: Trigger[] = [];
     public player: Character | null = null;
     public vehicles: Vehicle[] = [];
-    public camera: [number, number, number] = [128 * 64, 128 * 64, 10 * 64];
+    //public camera: [number, number, number] = [128 * 64, 128 * 64, 10 * 64];
+    public camera: [number, number, number] = [150 * 64, 123 * 64, 10 * 64];
     public targetScore: number = 0;
     public secretMissions: number = 0;
     public score: number = 0;
@@ -190,7 +191,8 @@ export default class Game {
             } else if (this.keyboard.isDown("right")) {
                 this.camera = [this.camera[0] + speed, this.camera[1], this.camera[2]];
             }
-            
+
+            document.title = this.camera.map(x => (x / 64).toFixed(1)).join(",");
         }
 
         let location: ISubArea | null = null;

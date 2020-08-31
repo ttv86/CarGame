@@ -29,7 +29,7 @@ export default class G1Game extends Game {
 }
 
 export async function loadAndCreate(missionId: number, renderer: WebGlCityRenderer, loadFile: (file: string) => Promise<DataView>): Promise<Game> {
-    const missions = readMissions(await loadFile("MISSION.INI"));
+    const missions = readMissions(await loadFile("G1/MISSION.INI"));
 
     const mission = missions.get(missionId);
     if (!mission) {
@@ -37,22 +37,22 @@ export async function loadAndCreate(missionId: number, renderer: WebGlCityRender
     }
 
     // Load needed data files
-    const mapPromise = loadFile(mission.map.toUpperCase()).then(x => new GameMap(x));
+    const mapPromise = loadFile(`G1/${mission.map.toUpperCase()}`).then(x => new GameMap(x));
 
     // Meanwhile map is loading, start loading other data files.
-    const textsPromise = loadFile("ENGLISH.FXT").then(x => new TextContainer(x));
-    const font1Promise = loadFile("SUB2.FON").then(x => new Font(x)); // Brief
-    const font2Promise = loadFile("SCORE2.FON").then(x => new Font(x)); // Scores
-    const font3Promise = loadFile("STREET2.FON").then(x => new Font(x)); // Locations
-    const font4Promise = loadFile("MISSMUL2.FON").then(x => new Font(x)); // Lives & multipliers
-    const font5Promise = loadFile("PAGER2.FON").then(x => new Font(x)); // Pager
-    const audio1Promise = Promise.all([loadFile("AUDIO/VOCALCOM.SDT"), loadFile("AUDIO/VOCALCOM.RAW")]).then(([index, data]) => new Audio(index, data, false));
+    const textsPromise = loadFile("G1/ENGLISH.FXT").then(x => new TextContainer(x));
+    const font1Promise = loadFile("G1/SUB2.FON").then(x => new Font(x)); // Brief
+    const font2Promise = loadFile("G1/SCORE2.FON").then(x => new Font(x)); // Scores
+    const font3Promise = loadFile("G1/STREET2.FON").then(x => new Font(x)); // Locations
+    const font4Promise = loadFile("G1/MISSMUL2.FON").then(x => new Font(x)); // Lives & multipliers
+    const font5Promise = loadFile("G1/PAGER2.FON").then(x => new Font(x)); // Pager
+    const audio1Promise = Promise.all([loadFile("G1/AUDIO/VOCALCOM.SDT"), loadFile("G1/AUDIO/VOCALCOM.RAW")]).then(([index, data]) => new Audio(index, data, false));
 
     // Wait here until map is loaded, we need information from it to load correct style and city-audio files.
     const map = await mapPromise;
     const levelNumber = map.style.toString().padStart(3, "0");
-    const stylePromise = loadFile(`style${levelNumber}.g24`).then(x => new Style(x));
-    const audio2Promise = Promise.all([loadFile(`AUDIO/LEVEL${levelNumber}.SDT`), loadFile(`AUDIO/LEVEL${levelNumber}.RAW`)]).then(([index, data]) => new Audio(index, data, false));
+    const stylePromise = loadFile(`G1/style${levelNumber}.g24`).then(x => new Style(x));
+    const audio2Promise = Promise.all([loadFile(`G1/AUDIO/LEVEL${levelNumber}.SDT`), loadFile(`G1/AUDIO/LEVEL${levelNumber}.RAW`)]).then(([index, data]) => new Audio(index, data, false));
 
     // Wait here global data files.
     const [texts, font1, font2, font3, font4, font5, audio1] = await Promise.all([textsPromise, font1Promise, font2Promise, font3Promise, font4Promise, font5Promise, audio1Promise]);

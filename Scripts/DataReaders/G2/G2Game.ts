@@ -33,7 +33,7 @@ export default class G2Game extends Game {
 
 export async function loadAndCreate(missionName: string, renderer: WebGlCityRenderer, loadFile: (file: string) => Promise<DataView>): Promise<Game> {
 
-    const [styleDataView, mapDataView, scriptDataView] = await Promise.all([loadFile(`${missionName}.sty`), loadFile(`${missionName}.gmp`), loadFile(`${missionName}.scr`)]);
+    const [styleDataView, mapDataView, scriptDataView] = await Promise.all([loadFile(`G2/${missionName}.sty`), loadFile(`G2/${missionName}.gmp`), loadFile(`G2/${missionName}.scr`)]);
 
     const style = new Style(styleDataView);
     const map = new GameMap(mapDataView);

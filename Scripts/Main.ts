@@ -39,7 +39,7 @@ function loadFile(filename: string): Promise<DataView> {
             }
         } else {
             // We are in browser. Use fetch-interface to request files from the server.
-            makeRequest(`/data/${filename}`);
+            makeRequest(`/${filename}`);
         }
     });
 }
