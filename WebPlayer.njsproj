@@ -35,6 +35,9 @@
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="docs\Blocks.html">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="Scripts\MainMenu.ts">
       <SubType>Code</SubType>
     </Content>
@@ -51,6 +54,7 @@
     <Content Include="tsconfig.json" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="docs\" />
     <Folder Include="Scripts\" />
     <Folder Include="Scripts\DataReaders\G1\" />
     <Folder Include="Scripts\DataReaders\G2\" />
@@ -87,6 +91,9 @@
       <SubType>Code</SubType>
     </TypeScriptCompile>
     <TypeScriptCompile Include="Scripts\DataReaders\G2\Style.ts">
+      <SubType>Code</SubType>
+    </TypeScriptCompile>
+    <TypeScriptCompile Include="Scripts\DataReaders\G2\TextContainer.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
     <TypeScriptCompile Include="Scripts\DataReaders\Interfaces.ts">

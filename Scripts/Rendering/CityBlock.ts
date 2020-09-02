@@ -139,7 +139,7 @@ export default class CityBlock {
     }
 
     private addSide(side: IWall | null, point1: Point, point2: Point, point3: Point, point4: Point, modelData: IModelDataBuilder) {
-        if (side && (side.transparent === modelData.transparent)) {
+        if (side && (side.tileIndex >= 0) && (side.transparent === modelData.transparent)) {
             // TODO:
             //if (animSideBlocks.indexOf(side.tileIndex) > -1) {
             //    animTexCoords.push(modelData.textureCoords.length);
@@ -155,7 +155,9 @@ export default class CityBlock {
             this.addTextureCoords(this.style.getSideTileTexCoords(side), modelData.textureCoords, side.transform);
             modelData.indices.push(start + 0, start + 1, start + 2, start + 3, start + 2, start + 1);
             if (side.backTileIndex !== void 0) {
-                this.addSide({ ...side, tileIndex: side.backTileIndex, backTileIndex: void 0 }, point2, point1, point4, point3, modelData);
+                let transform = side.transform ?? TextureTransform.NoTransform;
+                //transform ^= 4; // Add/remove mirroring
+                this.addSide({ ...side, tileIndex: side.backTileIndex, backTileIndex: void 0, transform }, point2, point1, point4, point3, modelData);
             }
         }
     }
@@ -329,7 +331,46 @@ function adjustSlope(
         topSouthEast[0] = topSouthWest[0];
         bottomSouthEast[0] = bottomSouthWest[0];
         return;
+    } else if (slope === 49) {
+        topNorthWest[2] = bottomNorthWest[2];
+    } else if (slope === 50) {
+        topNorthEast[2] = bottomNorthEast[2];
+    } else if (slope === 51) {
+        topSouthWest[2] = bottomSouthWest[2];
+    } else if (slope === 52) {
+        topSouthEast[2] = bottomSouthEast[2];
+    } else if (slope === 64) {
+        bottomNorthWest[0] = bottomNorthEast[0]
+        topNorthWest[0] = bottomSouthEast[0];
+        topNorthWest[2] = bottomSouthEast[2];
+        topSouthWest[0] = bottomSouthEast[0];
+        topNorthEast[2] = bottomSouthEast[2];
+    } else if (slope === 65) {
+        bottomNorthEast[0] = bottomNorthWest[0]
+        topNorthEast[0] = bottomSouthWest[0];
+        topNorthEast[2] = bottomSouthWest[2];
+        topSouthEast[0] = bottomSouthWest[0];
+        topNorthWest[2] = bottomSouthWest[2];
+    } else if (slope === 66) {
+        bottomSouthWest[0] = bottomSouthEast[0]
+        topSouthWest[0] = bottomNorthEast[0];
+        topSouthWest[2] = bottomNorthEast[2];
+        topNorthWest[0] = bottomNorthEast[0];
+        topSouthEast[2] = bottomNorthEast[2];
+    } else if (slope === 67) {
+        bottomSouthEast[0] = bottomSouthWest[0]
+        topSouthEast[0] = bottomNorthWest[0];
+        topSouthEast[2] = bottomNorthWest[2];
+        topNorthEast[0] = bottomNorthWest[0];
+        topSouthWest[2] = bottomNorthWest[2];
     }
+
+    //if ((slope >= 49) && (slope <= 52)) {
+    //    topNorthWest[0] -= 200;
+    //    topNorthEast[0] += 200;
+    //    topSouthWest[0] -= 200;
+    //    topSouthEast[0] += 200;
+    //}
 
     if ((slope === 53) || (slope === 57) || (slope === 60)) {
         // short left

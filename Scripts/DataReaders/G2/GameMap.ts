@@ -25,7 +25,7 @@ export default class GameMap implements IGameMap {
                     reader.position = end;
                     break;
                 default:
-                    console.log(`${blockType}: ${blockSize}`);
+                    console.log(`Unknown map block ${blockType}: ${blockSize}`);
                     reader.position += blockSize;
                     break;
             }
@@ -103,21 +103,28 @@ export default class GameMap implements IGameMap {
 }
 
 function createBlock(info: { left: number, right: number, top: number, bottom: number, lid: number, arrows: number, slope: number }): IBlock {
+    const lid = decodeLid(info.lid);
+    let slope = (info.slope >> 2) & 63;
+    if ((slope >= 49) && (slope <= 52) && (lid?.tileIndex === 1023)) {
+        slope += 15;
+    }
+
     return {
-        lid: decodeLid(info.lid),
+        lid,
         top: decodeWall(info.top, info.bottom),
         left: decodeWall(info.left, info.right),
         right: decodeWall(info.right, info.left),
         bottom: decodeWall(info.bottom, info.top),
-        slope: info.slope >> 2 & 63,
+        slope,
     };
 }
 
 function decodeLid(value: number): ILid | null {
     if (value > 0) {
         const transform: TextureTransform = ((value >> 11) & 4) | ((value >> 14) & 3);
+        const tileIndex = value & 1023;
         return {
-            tileIndex: value & 1023,
+            tileIndex: tileIndex || -1,
             lightLevel: (value >> 10) & 3,
             collision: Collision.Solid,
             transparent: ((value >> 12) & 1) == 1,
@@ -149,8 +156,9 @@ function decodeWall(value: number, reverse: number): IWall | null {
             collision = Collision.CharacterCollision;
         }
 
+        const tileIndex = value & 1023;
         return {
-            tileIndex: value & 1023,
+            tileIndex: tileIndex || -1,
             backTileIndex,
             collision,
             transform,

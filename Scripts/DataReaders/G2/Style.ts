@@ -1,5 +1,6 @@
-import { IStyle, IVehicleInfo, ILid, ITextureLocation, IWall, ISpriteLocation, VehicleType } from "../Interfaces";
+import { IStyle, IVehicleInfo, ILid, ITextureLocation, IWall, ISpriteLocation, VehicleType, IFont } from "../Interfaces";
 import { BinaryReader } from "../BinaryReader";
+import { TextChars } from "./TextContainer";
 
 const margin = 2;
 const tileSize = 64;
@@ -8,6 +9,11 @@ const tileTextureSize = 2400; // NOTE: should this be square of 2?
 const tilesPerRow = Math.floor(tileTextureSize / tileSizeWithMargin);
 
 export default class Style implements IStyle {
+    private spriteInfo = new Map<number, ISpriteLocation>();
+    private carInfo: ICarInfo[] = [];
+    private mapObjects: IMapObject[] = [];
+    private recycleCars: number[] = [];
+
     constructor(data: DataView) {
         const reader = new BinaryReader(data);
         const magic = reader.readString(4);
@@ -17,7 +23,8 @@ export default class Style implements IStyle {
         }
 
         let tileData: Uint8ClampedArray | null = null;
-        let paletteBase = {
+        let spriteData: Uint8ClampedArray | null = null;
+        const paletteBase = {
             tile: 0,
             sprite: 0,
             carRemap: 0,
@@ -27,15 +34,31 @@ export default class Style implements IStyle {
             userRemap: 0,
             fontRemap: 0,
         };
+        const spriteBase = {
+            car: 0,
+            pedestrian: 0,
+            codeObj: 0,
+            mapObj: 0,
+            user: 0,
+            font: 0,
+        };
+
         let physicalPalette: Uint8ClampedArray | null = null;
-        let virtualPalette = [];
+        const virtualPalette = [];
+        const fontBase: number[] = [];
+        const spriteInfo: ISpriteDataInfo[] = [];
 
         while (reader.position < reader.length) {
             const blockType = reader.readString(4);
             const blockSize = reader.readUint32();
+            const end = reader.position + blockSize;
+            let counter;
             switch (blockType) {
                 case "TILE":
                     tileData = reader.readByteArray(blockSize);
+                    break;
+                case "SPRG":
+                    spriteData = reader.readByteArray(blockSize);
                     break;
                 case "PPAL":
                     physicalPalette = reader.readByteArray(blockSize);
@@ -46,7 +69,7 @@ export default class Style implements IStyle {
                     }
                     break;
                 case "PALB":
-                    let counter = 0;
+                    counter = 0;
                     paletteBase.tile = counter;
                     counter += reader.readUint16();
 
@@ -70,9 +93,95 @@ export default class Style implements IStyle {
 
                     paletteBase.fontRemap = counter;
                     counter += reader.readUint16();
-                    continue;
+                    break;
+                case "SPRB":
+                    counter = 0;
+                    spriteBase.car = counter;
+                    counter += reader.readUint16();
+
+                    spriteBase.pedestrian = counter;
+                    counter += reader.readUint16();
+
+                    spriteBase.codeObj = counter;
+                    counter += reader.readUint16();
+
+                    spriteBase.mapObj = counter;
+                    counter += reader.readUint16();
+
+                    spriteBase.user = counter;
+                    counter += reader.readUint16();
+
+                    spriteBase.font = counter;
+                    counter += reader.readUint16();
+                    break;
+                case "SPRX":
+                    const spriteCount = blockSize / 8;
+                    for (let i = 0; i < spriteCount; i++) {
+                        spriteInfo.push({
+                            dataStart: reader.readUint32(),
+                            width: reader.readUint8(),
+                            height: reader.readUint8(),
+                        });
+                        reader.readUint16();
+                    }
+                    break;
+                case "FONB":
+                    let fontCount = reader.readUint16();
+                    for (let i = 0; i < fontCount; i++) {
+                        fontBase.push(reader.readUint16());
+                    }
+                    break;
+                case "CARI":
+                    while (reader.position < end) {
+                        const model = reader.readUint8();
+                        const sprite = reader.readUint8();
+                        const width = reader.readUint8();
+                        const height = reader.readUint8();
+                        const numRemaps = reader.readUint8();
+                        const passengers = reader.readUint8();
+                        const wreck = reader.readUint8();
+                        const rating = reader.readUint8();
+                        const frontWheelOffset = reader.readInt8();
+                        const rearWheelOffset = reader.readInt8();
+                        const frontWindowOffset = reader.readInt8();
+                        const rearWindowOffset = reader.readInt8();
+                        const infoFlags = reader.readUint8();
+                        const infoFlags2 = reader.readUint8();
+                        const remaps: number[] = [];
+                        for (let i = 0; i < numRemaps; i++) {
+                            remaps.push(reader.readUint8());
+                        }
+
+                        const doors: {x: number, y: number}[] = [];
+                        const numDoors = reader.readUint8();
+                        for (let i = 0; i < numDoors; i++) {
+                            doors.push({ x: reader.readInt8(), y: reader.readInt8() });
+                        }
+
+                        this.carInfo.push({
+                            model, sprite, width, height, passengers, wreck, rating,
+                            frontWheelOffset, rearWheelOffset, frontWindowOffset, rearWindowOffset,
+                            infoFlags, infoFlags2, remaps, doors
+                        });
+                    }
+
+                    break;
+                case "OBJI":
+                    while (reader.position < end) {
+                        this.mapObjects.push({ model: reader.readUint8(), sprites: reader.readUint8() });
+                    }
+
+                    break;
+
+                case "RECY":
+                    while (reader.position < end) {
+                        this.recycleCars.push(reader.readUint8());
+                    }
+
+                    break;
+
                 default:
-                    console.log(`${blockType}: ${blockSize}`);
+                    console.log(`Unknown style block ${blockType}: ${blockSize}`);
                     reader.position += blockSize;
                     break;
             }
@@ -82,20 +191,58 @@ export default class Style implements IStyle {
             throw new Error("Failed to find tile data.");
         }
 
+        if (!spriteData) {
+            throw new Error("Failed to find sprite data.");
+        }
+
         if (!physicalPalette) {
             throw new Error("Physical palette is null");
         }
 
+        let carSprite = spriteBase.car;
+        for (const car of this.carInfo) {
+            const offset = car.sprite;
+            car.sprite = carSprite;
+            carSprite += offset;
+        }
+
         this.tileImageData = this.generateTiles(tileData, virtualPalette, paletteBase.tile, physicalPalette);
-        this.spriteImageData = document.createElement("canvas");
+        this.spriteImageData = this.generateSprites(spriteData, spriteInfo, virtualPalette, paletteBase.sprite, physicalPalette);
+
+        /*
+         * fonts[0] = big text (only uppercase)
+         * fonts[1] = small yellowish text (both cases)
+         * fonts[2] = mid sized purplish text (only uppercase) Probably car names?
+         * fonts[3] = ???
+         * fonts[4] = ???
+         * fonts[5] = mid sized black text (only uppercase) Location names
+         * fonts[6] = mid sized white text (only uppercase)
+         */
+        const fonts: StyleFont[] = [];
+        this.fonts = fonts;
+        let fontCounter = spriteBase.font;
+        for (const font of fontBase) {
+            fonts.push(new StyleFont(this, fontCounter, font));
+            fontCounter += font;
+        }
+
+        console.log("cars", this.carInfo);
+        console.log("map objects", this.mapObjects);
+        console.log("recycle cars", this.recycleCars);
+        console.log("font base", fontBase);
+        console.log("spriteBase", spriteBase);
+        console.log("spriteInfo", this.spriteInfo);
+        console.log("fonts", this.fonts);
     }
 
     public readonly tileImageData: HTMLCanvasElement;
 
     public readonly spriteImageData: HTMLCanvasElement;
 
+    public readonly fonts: readonly IFont[];
+
     public getSpritePosition(spriteIndex: number): ISpriteLocation | null {
-        return { tX: 0, tY: 0, tW: 1, tH: 1, width: 20, height: 20 };
+        return this.spriteInfo.get(spriteIndex) ?? null;
     }
 
     public getVehicleInfo(model: number): IVehicleInfo {
@@ -121,7 +268,7 @@ export default class Style implements IStyle {
         return { tX: x, tY: y, tW: tileSize / tileTextureSize, tH: tileSize / tileTextureSize };
     }
 
-    private generateTiles(tileData: Uint8ClampedArray, virtualPalette: readonly number[], paletteBase: number, physicalPalette: Uint8ClampedArray) {
+    private generateTiles(tileData: Uint8ClampedArray, virtualPalette: readonly number[], paletteBase: number, physicalPalette: Uint8ClampedArray): HTMLCanvasElement {
         const tiles = tileData.length >> 12;
         const imageDataList: Uint8ClampedArray[] = [];
         for (let i = 0; i < tiles; i++) {
@@ -203,4 +350,154 @@ export default class Style implements IStyle {
         //document.body.appendChild(bigTexture);
         return bigTexture;
     }
+
+    private generateSprites(spriteData: Uint8ClampedArray, spriteInfo: readonly ISpriteDataInfo[], virtualPalette: readonly number[], paletteBase: number, physicalPalette: Uint8ClampedArray): HTMLCanvasElement {
+        const imageDataList: [number, number, ImageData][] = [];
+
+        let counter = 0;
+        for (const sprite of spriteInfo) {
+            const imageData = new Uint8ClampedArray(sprite.width * sprite.height * 4);
+
+            for (let y = 0; y < sprite.height; y++) {
+                for (let x = 0; x < sprite.width; x++) {
+                    const c = spriteData[(256 * y) + x + sprite.dataStart];
+                    if (c > 0) {
+                        const palette = virtualPalette[paletteBase + imageDataList.length];
+                        const color = ((palette >> 6) * 256 + c) * 256 + ((palette % 64) * 4);
+                        imageData[(((y * sprite.width) + x) * 4) + 0] = physicalPalette[color + 2];
+                        imageData[(((y * sprite.width) + x) * 4) + 1] = physicalPalette[color + 1];
+                        imageData[(((y * sprite.width) + x) * 4) + 2] = physicalPalette[color + 0];
+                        imageData[(((y * sprite.width) + x) * 4) + 3] = 255;
+                    } else {
+                        imageData[(((y * sprite.width) + x) * 4) + 0] = 0;
+                        imageData[(((y * sprite.width) + x) * 4) + 1] = 0;
+                        imageData[(((y * sprite.width) + x) * 4) + 2] = 0;
+                        imageData[(((y * sprite.width) + x) * 4) + 3] = 0;
+                    }
+                }
+            }
+
+            imageDataList.push([imageDataList.length, sprite.height, new ImageData(imageData, sprite.width)]);
+        }
+
+        imageDataList.sort((a, b) => a[1] - b[1]);
+        const canvas = document.createElement("canvas");
+        canvas.width = 2048;
+        canvas.height = 2048;
+        const context = canvas.getContext("2d");
+        if (!context) {
+            throw new Error("Failed to get canvas rendering context while generating tiles.");
+        }
+
+        let margin = 4;
+        let x = margin;
+        let y = margin;
+        const limit = canvas.width - margin;
+        for (const item of imageDataList) {
+            const sprite = item[2];
+            if (x + sprite.width >= limit) {
+                y += sprite.height + margin;
+                x = margin;
+            }
+
+            context.putImageData(sprite, x, y);
+            this.spriteInfo.set(item[0], {
+                tX: x / canvas.width,
+                tY: y / canvas.height,
+                tW: sprite.width / canvas.width,
+                tH: sprite.height / canvas.height,
+                width: sprite.width,
+                height: sprite.height,
+            });
+            x += sprite.width + margin;
+        }
+
+        //const image = document.createElement("img");
+        //image.src = canvas.toDataURL();
+        //image.style.position = "fixed";
+        //image.style.left = "0";
+        //image.style.top = "0";
+        ////image.style.width = "100vw";
+        ////image.style.height = "100vh";
+        //document.body.appendChild(image);
+
+        return canvas;
+    }
+}
+
+class StyleFont implements IFont {
+    private base: number;
+    private style: Style;
+    private charCount: number;
+
+    constructor(style: Style, base: number, charCount: number) {
+        this.base = base;
+        this.style = style;
+        this.charCount = charCount;
+        this.fontImageData = style.spriteImageData;
+        const positionInfo = this.style.getSpritePosition(this.base)
+        this.height = positionInfo?.height ?? 0;
+    }
+
+    public readonly height: number;
+    public readonly fontImageData: HTMLCanvasElement;
+
+    public getTextInfo(text: string): { widths: readonly number[]; textureCoords: readonly number[]; } {
+        const widths: number[] = [];
+        const textureCoords: number[] = [];
+        for (let i = 0; i < text.length; i++) {
+            const code = text.charCodeAt(i);
+            const index = TextChars.indexOf(code);
+            if (index >= 0) {
+                const pos = this.style.getSpritePosition(this.base + index);
+                if (pos) {
+                    widths.push(pos.width);
+                    textureCoords.push(pos.tX, pos.tY, pos.tX + pos.tW, pos.tY, pos.tX, pos.tY + pos.tH, pos.tX + pos.tW, pos.tY + pos.tH);
+                }
+            }
+        }
+
+        return { widths, textureCoords };
+    }
+}
+
+interface ISpriteDataInfo {
+    dataStart: number;
+    width: number;
+    height: number;
+}
+
+interface ISpriteInfo {
+    w: number;
+    h: number;
+    ws: number;
+    size: number;
+    deltaCount: number;
+    x: number;
+    y: number;
+    page: number;
+    palette: number;
+}
+
+interface ICarInfo {
+    model: number;
+    sprite: number;
+    width: number;
+    height: number;
+    passengers: number;
+    wreck: number;
+    rating: number;
+    frontWheelOffset: number;
+    rearWheelOffset: number;
+    frontWindowOffset: number;
+    rearWindowOffset: number;
+    infoFlags: number;
+    infoFlags2: number;
+    remaps: number[];
+    doors: { x: number, y: number }[];
+}
+
+interface IMapObject {
+    model: number;
+    sprites: number;
 }

@@ -98,7 +98,7 @@ export interface IAudio {
 
 export interface IFont {
     readonly height: number;
-    readonly fontImageData: ImageData;
+    readonly fontImageData: HTMLImageElement | HTMLCanvasElement | ImageData;
     getTextInfo(text: string): { widths: readonly number[], textureCoords: readonly number[] };
 }
 
