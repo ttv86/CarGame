@@ -26,8 +26,8 @@ export default class G2Game extends Game {
         locationFont: IFont,
         lifeFont: IFont,
         pagerFont: IFont,
-        globalAudio: IAudio,
-        localAudio: IAudio) {
+        globalAudio: IAudio | null,
+        localAudio: IAudio | null) {
         super(map, style, gameScript, texts, renderer, subtitleFont, pointFont, locationFont, lifeFont, pagerFont, globalAudio, localAudio);
         this.showText(1600, "phone");
     }
@@ -40,16 +40,16 @@ export async function loadAndCreate(missionName: string, renderer: WebGlCityRend
     );
 
     const style = new Style(styleDataView);
-    const map = new GameMap(mapDataView);
-    const gameScript = new GameScript(scriptDataView);
     const texts = new TextContainer(textDataView);
+    const map = new GameMap(mapDataView, texts);
+    const gameScript = new GameScript(scriptDataView);
     const bigFont = style.fonts[0];
     const subtitleFont = style.fonts[1];
     const carInfoFont = style.fonts[2];
     const locationFont = style.fonts[5];
     const font5 = style.fonts[6];
-    const audio1 = null!;
-    const audio2 = null!;
+    const audio1 = null;
+    const audio2 = null;
 
     renderer.buildCityModel(map, style);
     return new G2Game(map, style, gameScript, texts, renderer, subtitleFont, subtitleFont, locationFont, subtitleFont, subtitleFont, audio1, audio2);

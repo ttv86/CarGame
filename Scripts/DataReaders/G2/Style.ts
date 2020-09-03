@@ -226,13 +226,13 @@ export default class Style implements IStyle {
             fontCounter += font;
         }
 
-        console.log("cars", this.carInfo);
-        console.log("map objects", this.mapObjects);
-        console.log("recycle cars", this.recycleCars);
-        console.log("font base", fontBase);
-        console.log("spriteBase", spriteBase);
-        console.log("spriteInfo", this.spriteInfo);
-        console.log("fonts", this.fonts);
+        //console.log("cars", this.carInfo);
+        //console.log("map objects", this.mapObjects);
+        //console.log("recycle cars", this.recycleCars);
+        //console.log("font base", fontBase);
+        //console.log("spriteBase", spriteBase);
+        //console.log("spriteInfo", this.spriteInfo);
+        //console.log("fonts", this.fonts);
     }
 
     public readonly tileImageData: HTMLCanvasElement;
@@ -451,7 +451,7 @@ class StyleFont implements IFont {
             if (index >= 0) {
                 const pos = this.style.getSpritePosition(this.base + index);
                 if (pos) {
-                    widths.push(pos.width);
+                    widths.push(code == 0x20 ? this.height / 2 : pos.width);
                     textureCoords.push(pos.tX, pos.tY, pos.tX + pos.tW, pos.tY, pos.tX, pos.tY + pos.tH, pos.tX + pos.tW, pos.tY + pos.tH);
                 }
             }

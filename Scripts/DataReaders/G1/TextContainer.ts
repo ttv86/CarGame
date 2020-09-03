@@ -1,4 +1,4 @@
-import { ITextContainer, IArea, SpecialTextCode } from "../Interfaces";
+import { ITextContainer, IArea } from "../Interfaces";
 import { IMapArea } from "./GameMap";
 
 export default class TextContainer implements ITextContainer {
@@ -22,39 +22,39 @@ export default class TextContainer implements ITextContainer {
         return "";
     }
 
-    public getSpecial(code: SpecialTextCode): string {
-        let stringCode: string;
-        switch (code) {
-            case "north-east":
-                stringCode = "ne";
-                break;
-            case "north":
-                stringCode = "n";
-                break;
-            case "north-west":
-                stringCode = "nw";
-                break;
-            case "east":
-                stringCode = "e";
-                break;
-            case "west":
-                stringCode = "w";
-                break;
-            case "south-east":
-                stringCode = "se";
-                break;
-            case "south":
-                stringCode = "s";
-                break;
-            case "south-west":
-                stringCode = "sw";
-                break;
-            default:
-                stringCode = code;
-        }
+    //public getSpecial(code: SpecialTextCode): string {
+    //    let stringCode: string;
+    //    switch (code) {
+    //        case "north-east":
+    //            stringCode = "ne";
+    //            break;
+    //        case "north":
+    //            stringCode = "n";
+    //            break;
+    //        case "north-west":
+    //            stringCode = "nw";
+    //            break;
+    //        case "east":
+    //            stringCode = "e";
+    //            break;
+    //        case "west":
+    //            stringCode = "w";
+    //            break;
+    //        case "south-east":
+    //            stringCode = "se";
+    //            break;
+    //        case "south":
+    //            stringCode = "s";
+    //            break;
+    //        case "south-west":
+    //            stringCode = "sw";
+    //            break;
+    //        default:
+    //            stringCode = code;
+    //    }
 
-        return this.get(stringCode);
-    }
+    //    return this.get(stringCode);
+    //}
 
     public get(code: string): string {
         return this.texts.get(code) ?? code;

@@ -22,7 +22,9 @@ export interface IBlock {
 
 export interface ILight {
     readonly color: { readonly r: number, readonly g: number, readonly b: number };
-    readonly pos: { readonly x: number, readonly y: number, readonly z: number };
+    readonly radius: number;
+    readonly position: { readonly x: number, readonly y: number, readonly z: number };
+    //intensity, shape, onTime, offTime
 }
 
 export interface IWall {
@@ -107,17 +109,8 @@ export interface IGameScript {
     update(time: number): void;
 }
 
-export type SpecialTextCode =
-    // Main menu options
-    "play" | "options" |
-
-    // Directions
-    "north" | "east" | "west" | "south" | "north-west" | "north-east" | "south-west" | "south-east";
-
 export interface ITextContainer {
-    getAreaName(area: IArea): string;
-    get(code: string): string;
-    getSpecial(code: SpecialTextCode): string;
+    get(code: string, useFormating?: boolean): string | null;
 }
 
 export enum TextureTransform {

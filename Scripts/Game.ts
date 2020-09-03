@@ -12,10 +12,10 @@ import TrainSystem from "./TrainSystem";
 
 export default class Game {
     private readonly subtitles: SubtitleBox | null = null;
-    private readonly globalAudio: IAudio;
-    private readonly localAudio: IAudio;
-    private readonly areas: ISubArea[] = [];
-    private lastLocation: ISubArea | null = null;
+    private readonly globalAudio: IAudio | null;
+    private readonly localAudio: IAudio | null;
+    private readonly areas: IArea[] = [];
+    private lastLocation: IArea | null = null;
     public readonly map: IGameMap;
     public readonly style: IStyle;
     public readonly gameScript: IGameScript;
@@ -45,8 +45,8 @@ export default class Game {
         locationFont: IFont,
         lifeFont: IFont,
         pagerFont: IFont,
-        globalAudio: IAudio,
-        localAudio: IAudio) {
+        globalAudio: IAudio | null,
+        localAudio: IAudio | null) {
 
         this.map = map;
         this.style = style;
@@ -81,26 +81,7 @@ export default class Game {
         // Make sure areas are sorted by size.
         const areas = [...map.areas];
         areas.sort((a1, a2) => (a1.height * a1.width) - (a2.height * a2.width));
-
-        // Calculate area boundaries, so we don't need to do this in render loop.
-        for (const area of areas) {
-            const w = area.width / 3;
-            const h = area.height / 3;
-            const name = this.texts.getAreaName(area);
-            this.areas.push(
-                { x1: (area.x + (0 * w)) * 64, y1: (area.y + (0 * h)) * 64, x2: (area.x + (1 * w)) * 64, y2: (area.y + (1 * h)) * 64, name: `${texts.getSpecial("north-west")} ${name}`, parentArea: area, subSection: "north-west" },
-                { x1: (area.x + (1 * w)) * 64, y1: (area.y + (0 * h)) * 64, x2: (area.x + (2 * w)) * 64, y2: (area.y + (1 * h)) * 64, name: `${texts.getSpecial("north")} ${name}`, parentArea: area, subSection: "north" },
-                { x1: (area.x + (2 * w)) * 64, y1: (area.y + (0 * h)) * 64, x2: (area.x + (3 * w)) * 64, y2: (area.y + (1 * h)) * 64, name: `${texts.getSpecial("north-east")} ${name}`, parentArea: area, subSection: "north-east" },
-
-                { x1: (area.x + (0 * w)) * 64, y1: (area.y + (1 * h)) * 64, x2: (area.x + (1 * w)) * 64, y2: (area.y + (2 * h)) * 64, name: `${texts.getSpecial("west")} ${name}`, parentArea: area, subSection: "west" },
-                { x1: (area.x + (1 * w)) * 64, y1: (area.y + (1 * h)) * 64, x2: (area.x + (2 * w)) * 64, y2: (area.y + (2 * h)) * 64, name: `${name}`, parentArea: area, subSection: null },
-                { x1: (area.x + (2 * w)) * 64, y1: (area.y + (1 * h)) * 64, x2: (area.x + (3 * w)) * 64, y2: (area.y + (2 * h)) * 64, name: `${texts.getSpecial("east")} ${name}`, parentArea: area, subSection: "east" },
-
-                { x1: (area.x + (0 * w)) * 64, y1: (area.y + (2 * h)) * 64, x2: (area.x + (1 * w)) * 64, y2: (area.y + (3 * h)) * 64, name: `${texts.getSpecial("south-west")} ${name}`, parentArea: area, subSection: "south-west" },
-                { x1: (area.x + (1 * w)) * 64, y1: (area.y + (2 * h)) * 64, x2: (area.x + (2 * w)) * 64, y2: (area.y + (3 * h)) * 64, name: `${texts.getSpecial("south")} ${name}`, parentArea: area, subSection: "south" },
-                { x1: (area.x + (2 * w)) * 64, y1: (area.y + (2 * h)) * 64, x2: (area.x + (3 * w)) * 64, y2: (area.y + (3 * h)) * 64, name: `${texts.getSpecial("south-east")} ${name}`, parentArea: area, subSection: "south-east" },
-            );
-        }
+        this.areas.push(...areas);
 
         // Call resize event, so gui components are moved to right places.
         this.resized();
@@ -195,9 +176,13 @@ export default class Game {
             document.title = this.camera.map(x => (x / 64).toFixed(1)).join(",");
         }
 
-        let location: ISubArea | null = null;
+        let location: IArea | null = null;
         for (const area of this.areas) {
-            if ((this.camera[0] >= area.x1) && (this.camera[0] < area.x2) && (this.camera[1] >= area.y1) && (this.camera[1] < area.y2)) {
+            const x1 = area.x * 64;
+            const x2 = (area.x + area.width) * 64;
+            const y1 = area.y * 64;
+            const y2 = (area.y + area.height) * 64;
+            if ((this.camera[0] >= x1) && (this.camera[0] < x2) && (this.camera[1] >= y1) && (this.camera[1] < y2)) {
                 location = area;
                 break;
             }
@@ -262,7 +247,7 @@ export default class Game {
     }
 
     public getText(key: string): string {
-        return this.texts.get(key) ?? "";
+        return this.texts.get(key, true) ?? "";
     }
 
     public addToWorld(item: Entity): void {
@@ -347,17 +332,17 @@ export default class Game {
     public showText(textReference: number, type: "mouth" | "phone" | "mobile"): void {
         // TODO: Not implemented.
         if (this.subtitles) {
-            this.subtitles.setText(this.texts.get(textReference.toString()) ?? "N/A");
+            this.subtitles.setText(this.texts.get(textReference.toString(), true) ?? "N/A");
         }
     }
 }
 
-interface ISubArea {
-    x1: number;
-    y1: number;
-    x2: number;
-    y2: number;
-    name: string;
-    parentArea: IArea;
-    subSection: "west" | "north" | "south" | "east" | "north-west" | "north-east" | "south-west" | "south-east" | null;
-}
+//interface ISubArea {
+//    x1: number;
+//    y1: number;
+//    x2: number;
+//    y2: number;
+//    name: string;
+//    parentArea: IArea;
+//    subSection: "west" | "north" | "south" | "east" | "north-west" | "north-east" | "south-west" | "south-east" | null;
+//}

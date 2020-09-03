@@ -1,12 +1,16 @@
 import { IGameMap, ILight, IArea, IBlock, ILid, IWall, Collision, TextureTransform } from "../Interfaces";
 import { BinaryReader } from "../BinaryReader";
+import TextContainer from "./TextContainer";
 
 export default class GameMap implements IGameMap {
+    private specialAreas: ISpecialArea[] = [];
     private readonly blocks: (IBlock | null)[][][] = [];
 
-    constructor(data: DataView) {
-        this.areas = [];
-        this.lights = [];
+    constructor(data: DataView, texts: TextContainer) {
+        const areas: IArea[] = [];
+        const lights: ILight[] = [];
+        this.areas = areas;
+        this.lights = lights;
 
         const reader = new BinaryReader(data);
         const magic = reader.readString(4);
@@ -18,18 +22,66 @@ export default class GameMap implements IGameMap {
         while (reader.position < reader.length) {
             const blockType = reader.readString(4);
             const blockSize = reader.readUint32();
+            const end = reader.position + blockSize;
             switch (blockType) {
                 case "DMAP":
-                    const end = reader.position + blockSize;
                     this.blocks = this.readBlocks(reader);
-                    reader.position = end;
                     break;
+                case "UMAP": // Rarely exists
+                case "CMAP": // Not currently needed
+                case "PSXM": // Not currently needed
+                    break;
+
+                case "ZONE":
+                    while (reader.position < end) {
+                        const zoneType = reader.readUint8();
+                        const x = reader.readUint8();
+                        const y = reader.readUint8();
+                        const width = reader.readUint8();
+                        const height = reader.readUint8();
+                        const nameLength = reader.readUint8();
+                        const name = reader.readString(nameLength);
+                        this.specialAreas.push({ zoneType, x, y, width, height, name });
+                        if ((zoneType === ZoneType.Navigation) || (zoneType === ZoneType.LocalNavigation)) {
+                            areas.push({ x, y, width, height, name: (texts?.get(name, false) ?? name).toUpperCase() });
+                        }
+                    }
+
+                    break;
+
+                case "LGHT":
+                    while (reader.position < end) {
+                        const r = reader.readUint8() / 255;
+                        const g = reader.readUint8() / 255;
+                        const b = reader.readUint8() / 255;
+                        reader.readUint8(); // Alpha - not used.
+                        const x = reader.readUint16() / 128;
+                        const y = reader.readUint16() / 128;
+                        const z = reader.readUint16() / 128;
+                        const radius = reader.readUint16() / 128;
+                        const intensity = reader.readUint8() / 255;
+                        const shape = reader.readUint8();
+                        const onTime = reader.readUint8();
+                        const offTime = reader.readUint8();
+                        lights.push({
+                            color: { r, g, b },
+                            radius,
+                            position: { x, y, z },
+                        });
+                    }
+
+                    break;
+
                 default:
                     console.log(`Unknown map block ${blockType}: ${blockSize}`);
-                    reader.position += blockSize;
                     break;
             }
+
+            // Make sure we are at end of the block.
+            reader.position = end;
         }
+
+        //console.table(this.specialAreas);
     }
 
     public readonly width: number = 256;
@@ -179,4 +231,26 @@ function clamp(value: number, min: number, max: number): number {
     }
 
     return value;
+}
+
+interface ISpecialArea extends IArea {
+    zoneType: ZoneType;
+}
+
+enum ZoneType {
+    GeneralPurpose = 0,
+    Navigation = 1,
+    TrafficLight = 2,
+    ArrowBlocker = 5,
+    RailwayPlatform = 6,
+    BusStop = 7,
+    Trigger = 8,
+    Information = 10,
+    RailwayEntry = 11,
+    RailwayExit = 12,
+    RailwayStop = 13,
+    Gang = 14,
+    LocalNavigation = 15,
+    Restart = 16,
+    ArrestRestart = 20,
 }

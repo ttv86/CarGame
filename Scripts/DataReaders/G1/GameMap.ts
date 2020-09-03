@@ -1,10 +1,11 @@
-import { IGameMap, IBlock, IWall, ILid, ILight, Collision, TextureTransform } from "../Interfaces";
+import { IGameMap, IBlock, IWall, ILid, ILight, Collision, TextureTransform, IArea } from "../Interfaces";
 import { BinaryReader } from "../BinaryReader";
+import TextContainer from "./TextContainer";
 
 export default class GameMap implements IGameMap {
     private readonly blocks: (MapBlock | null)[][][];
 
-    constructor(data: DataView) {
+    constructor(data: DataView, texts: TextContainer) {
         const reader = new BinaryReader(data);
         const version = reader.readInt32();
         if (version !== 331) {
@@ -28,7 +29,7 @@ export default class GameMap implements IGameMap {
         this.readObjects(reader, objectPosSize);
         this.readRoutes(reader, routeSize);
         this.readLocationData(reader);
-        this.readNavData(reader, navDataSize);
+        this.readNavData(reader, navDataSize, texts);
     }
 
     public readonly width: number = 256;
@@ -162,7 +163,7 @@ export default class GameMap implements IGameMap {
         }
     }
 
-    private readNavData(reader: BinaryReader, navDataSize: number) {
+    private readNavData(reader: BinaryReader, navDataSize: number, texts: TextContainer) {
         const end = reader.position + navDataSize;
         while (reader.position < end) {
             const x = reader.readUint8();
@@ -175,12 +176,28 @@ export default class GameMap implements IGameMap {
                 continue;
             }
 
-            let name = "";
+            let nameBuilder = "";
             for (let i = 0; i < nameBytes.length && nameBytes[i] > 0; i++) {
-                name += String.fromCharCode(nameBytes[i]);
+                nameBuilder += String.fromCharCode(nameBytes[i]);
             }
 
-            this.areas.push({ x, y, width, height, voiceId, name });
+            // Calculate sub area boundaries, so we don't need to do this in render loop.
+            const w = width / 3;
+            const h = height / 3;
+            const name = texts.get(nameBuilder);
+            this.areas.push(
+                { x: (x + (0 * w)) * 64, y: (y + (0 * h)) * 64, width: w, height: h, name: `${texts.get("nw")} ${name}`, voiceId , subSection: "north-west" },
+                { x: (x + (1 * w)) * 64, y: (y + (0 * h)) * 64, width: w, height: h, name: `${texts.get("n")} ${name}`, voiceId , subSection: "north" },
+                { x: (x + (2 * w)) * 64, y: (y + (0 * h)) * 64, width: w, height: h, name: `${texts.get("ne")} ${name}`, voiceId, subSection: "north-east"  },
+
+                { x: (x + (0 * w)) * 64, y: (y + (1 * h)) * 64, width: w, height: h, name: `${texts.get("w")} ${name}`, voiceId, subSection: "west"  },
+                { x: (x + (1 * w)) * 64, y: (y + (1 * h)) * 64, width: w, height: h, name: `${name}`, voiceId, subSection: null  },
+                { x: (x + (2 * w)) * 64, y: (y + (1 * h)) * 64, width: w, height: h, name: `${texts.get("e")} ${name}`, voiceId, subSection: "east"  },
+
+                { x: (x + (0 * w)) * 64, y: (y + (2 * h)) * 64, width: w, height: h, name: `${texts.get("sw")} ${name}`, voiceId, subSection: "south-west"  },
+                { x: (x + (1 * w)) * 64, y: (y + (2 * h)) * 64, width: w, height: h, name: `${texts.get("s")} ${name}`, voiceId, subSection: "south"  },
+                { x: (x + (2 * w)) * 64, y: (y + (2 * h)) * 64, width: w, height: h, name: `${texts.get("se")} ${name}`, voiceId, subSection: "south-east"  },
+            );
         }
     }
 
@@ -306,13 +323,9 @@ function clamp(value: number, min: number, max: number): number {
     return value;
 }
 
-export interface IMapArea {
-    name: string;
-    x: number;
-    y: number;
-    width: number;
-    height: number;
+export interface IMapArea extends IArea {
     voiceId: number;
+    subSection: "north" | "east" | "west" | "south" | "north-west" | "north-east" | "south-west" | "south-east" | null;
 }
 
 interface IMapObject {

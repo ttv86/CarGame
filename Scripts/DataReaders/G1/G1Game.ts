@@ -37,10 +37,10 @@ export async function loadAndCreate(missionId: number, renderer: WebGlCityRender
     }
 
     // Load needed data files
-    const mapPromise = loadFile(`G1/${mission.map.toUpperCase()}`).then(x => new GameMap(x));
+    const texts = await loadFile("G1/ENGLISH.FXT").then(x => new TextContainer(x));
+    const mapPromise = loadFile(`G1/${mission.map.toUpperCase()}`).then(x => new GameMap(x, texts));
 
     // Meanwhile map is loading, start loading other data files.
-    const textsPromise = loadFile("G1/ENGLISH.FXT").then(x => new TextContainer(x));
     const font1Promise = loadFile("G1/SUB2.FON").then(x => new Font(x)); // Brief
     const font2Promise = loadFile("G1/SCORE2.FON").then(x => new Font(x)); // Scores
     const font3Promise = loadFile("G1/STREET2.FON").then(x => new Font(x)); // Locations
@@ -55,7 +55,7 @@ export async function loadAndCreate(missionId: number, renderer: WebGlCityRender
     const audio2Promise = Promise.all([loadFile(`G1/AUDIO/LEVEL${levelNumber}.SDT`), loadFile(`G1/AUDIO/LEVEL${levelNumber}.RAW`)]).then(([index, data]) => new Audio(index, data, false));
 
     // Wait here global data files.
-    const [texts, font1, font2, font3, font4, font5, audio1] = await Promise.all([textsPromise, font1Promise, font2Promise, font3Promise, font4Promise, font5Promise, audio1Promise]);
+    const [font1, font2, font3, font4, font5, audio1] = await Promise.all([font1Promise, font2Promise, font3Promise, font4Promise, font5Promise, audio1Promise]);
 
     // Wait here city-specific data files.
     const [style, audio2] = await Promise.all([stylePromise, audio2Promise]);
