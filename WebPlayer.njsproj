@@ -58,6 +58,7 @@
     <Folder Include="Scripts\" />
     <Folder Include="Scripts\DataReaders\G1\" />
     <Folder Include="Scripts\DataReaders\G2\" />
+    <Folder Include="Scripts\DataReaders\G_Shared\" />
     <Folder Include="Scripts\GuiWidgets\" />
     <Folder Include="Scripts\DataReaders\" />
     <Folder Include="Scripts\MainMenu\" />
@@ -90,10 +91,16 @@
     <TypeScriptCompile Include="Scripts\DataReaders\G2\GameScript.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
+    <TypeScriptCompile Include="Scripts\DataReaders\G2\GangAffiliationWidget.ts">
+      <SubType>Code</SubType>
+    </TypeScriptCompile>
     <TypeScriptCompile Include="Scripts\DataReaders\G2\Style.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
     <TypeScriptCompile Include="Scripts\DataReaders\G2\TextContainer.ts">
+      <SubType>Code</SubType>
+    </TypeScriptCompile>
+    <TypeScriptCompile Include="Scripts\DataReaders\G_Shared\HeadWidget.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
     <TypeScriptCompile Include="Scripts\DataReaders\Interfaces.ts">
@@ -102,7 +109,7 @@
     <TypeScriptCompile Include="Scripts\GameScriptBase.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
-    <TypeScriptCompile Include="Scripts\GuiWidgets\LocationInfo.ts">
+    <TypeScriptCompile Include="Scripts\GuiWidgets\GuiWidget.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
     <TypeScriptCompile Include="Scripts\GuiWidgets\SubtitleBox.ts">

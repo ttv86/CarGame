@@ -42,6 +42,7 @@ export default class Style implements IStyle {
             user: 0,
             font: 0,
         };
+        this.spriteBase = spriteBase;
 
         let physicalPalette: Uint8ClampedArray | null = null;
         const virtualPalette = [];
@@ -167,8 +168,12 @@ export default class Style implements IStyle {
 
                     break;
                 case "OBJI":
+                    let spriteStart = 0;
                     while (reader.position < end) {
-                        this.mapObjects.push({ model: reader.readUint8(), sprites: reader.readUint8() });
+                        const model = reader.readUint8();
+                        const spriteCount = reader.readUint8();
+                        this.mapObjects.push({ model, spriteStart, spriteCount });
+                        spriteStart += spriteCount;
                     }
 
                     break;
@@ -240,6 +245,8 @@ export default class Style implements IStyle {
     public readonly spriteImageData: HTMLCanvasElement;
 
     public readonly fonts: readonly IFont[];
+
+    public readonly spriteBase: ISpriteBase;
 
     public getSpritePosition(spriteIndex: number): ISpriteLocation | null {
         return this.spriteInfo.get(spriteIndex) ?? null;
@@ -467,6 +474,15 @@ interface ISpriteDataInfo {
     height: number;
 }
 
+interface ISpriteBase {
+    car: number;
+    pedestrian: number;
+    codeObj: number;
+    mapObj: number;
+    user: number;
+    font: number;
+}
+
 interface ISpriteInfo {
     w: number;
     h: number;
@@ -499,5 +515,6 @@ interface ICarInfo {
 
 interface IMapObject {
     model: number;
-    sprites: number;
+    spriteStart: number;
+    spriteCount: number;
 }

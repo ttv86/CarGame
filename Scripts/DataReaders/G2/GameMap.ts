@@ -43,7 +43,12 @@ export default class GameMap implements IGameMap {
                         const name = reader.readString(nameLength);
                         this.specialAreas.push({ zoneType, x, y, width, height, name });
                         if ((zoneType === ZoneType.Navigation) || (zoneType === ZoneType.LocalNavigation)) {
-                            areas.push({ x, y, width, height, name: (texts?.get(name, false) ?? name).toUpperCase() });
+                            let shownName = texts?.get(name, false) ?? "";
+                            if (!shownName) {
+                                shownName = name;
+                            }
+
+                            areas.push({ x, y, width, height, name: shownName });
                         }
                     }
 

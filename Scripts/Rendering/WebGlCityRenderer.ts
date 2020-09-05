@@ -9,6 +9,7 @@ import CityBlock from "./CityBlock";
 import WebGlBaseRenderer, { IBaseRenderer } from "./WebGlBaseRenderer";
 import WireframeModel from "./WireframeModel";
 import { PhysicsObject } from "../PhysicsSystem";
+import GuiWidget from "../GuiWidgets/GuiWidget";
 
 const blockSize = 16;
 export default class WebGlRenderer extends WebGlBaseRenderer implements IRenderer {
@@ -21,6 +22,7 @@ export default class WebGlRenderer extends WebGlBaseRenderer implements IRendere
     public readonly debugModels: WireframeModel[] = [];
     public readonly worldEntities: Entity[] = [];
     public readonly guiEntities: Entity[] = [];
+    public guiWidgets: GuiWidget[] = [];
     private tileTexture: WebGLTexture | null = null;
     private spriteTexture: WebGLTexture | null = null;
 
@@ -142,6 +144,10 @@ export default class WebGlRenderer extends WebGlBaseRenderer implements IRendere
 
         this.gl.disable(WebGLRenderingContext.DEPTH_TEST);
 
+        for (const guiWidget of this.guiWidgets) {
+            guiWidget.renderIfVisible();
+        }
+
         for (const entity of this.guiEntities) {
             if (entity.visible) {
                 mat4.lookAt(world, [-entity.x, -entity.y, 10], [-entity.x, -entity.y, 0], [0, 1, 0]);
@@ -229,6 +235,19 @@ export default class WebGlRenderer extends WebGlBaseRenderer implements IRendere
         }
     }
 
+    public renderSprite(model: Model, x: number, y: number): void;
+    public renderSprite(model: Model, x: number, y: number, width: number, height: number): void;
+    public renderSprite(model: Model, x: number, y: number, width?: number, height?: number): void {
+        const world = mat4.lookAt(mat4.create(), [-x, -y, 10], [-x, -y, 0], [0, 1, 0]);
+        this.program.worldMatrix = world;
+        this.render(model);
+    }
+
+    public resetWorldMatrix(): void {
+        const world = mat4.lookAt(mat4.create(), [0, 0, 10], [0, 0, 0], [0, 1, 0]);
+        this.program.worldMatrix = world;
+    }
+
     public getViewSize(): [number, number] {
         return [this.width, this.height];
     }
@@ -255,13 +274,18 @@ export default class WebGlRenderer extends WebGlBaseRenderer implements IRendere
 export interface IRenderer extends IBaseRenderer {
     readonly worldEntities: Entity[];
     readonly guiEntities: Entity[];
+    guiWidgets: readonly GuiWidget[];
 
+    buildCityModel(map: IGameMap, style: IStyle): void;
     update(time: number): void;
     setCamera(position: [number, number, number]): void;
     getViewSize(): [number, number];
     render(model: Model): void;
     render(sprite: Sprite): void;
     render(textBuffer: ITextBuffer): void;
+    resetWorldMatrix(): void;
+    renderSprite(model: Model, x: number, y: number): void;
+    renderSprite(model: Model, x: number, y: number, width: number, height: number): void;
     clip(area: [number, number, number, number] | null): void;
     createModel(modelData: IModelData): void;
     createModelFromSprite(spriteInfo: ISpriteLocation, modelTexture: HTMLImageElement | HTMLCanvasElement | ImageData, offsetX?: number, offsetY?: number): Model;

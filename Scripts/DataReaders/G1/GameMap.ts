@@ -186,17 +186,17 @@ export default class GameMap implements IGameMap {
             const h = height / 3;
             const name = texts.get(nameBuilder);
             this.areas.push(
-                { x: (x + (0 * w)) * 64, y: (y + (0 * h)) * 64, width: w, height: h, name: `${texts.get("nw")} ${name}`, voiceId , subSection: "north-west" },
-                { x: (x + (1 * w)) * 64, y: (y + (0 * h)) * 64, width: w, height: h, name: `${texts.get("n")} ${name}`, voiceId , subSection: "north" },
-                { x: (x + (2 * w)) * 64, y: (y + (0 * h)) * 64, width: w, height: h, name: `${texts.get("ne")} ${name}`, voiceId, subSection: "north-east"  },
+                { x: (x + (0 * w)), y: (y + (0 * h)), width: w, height: h, name: `${texts.get("nw")} ${name}`, voiceId , subSection: "north-west" },
+                { x: (x + (1 * w)), y: (y + (0 * h)), width: w, height: h, name: `${texts.get("n")} ${name}`, voiceId , subSection: "north" },
+                { x: (x + (2 * w)), y: (y + (0 * h)), width: w, height: h, name: `${texts.get("ne")} ${name}`, voiceId, subSection: "north-east"  },
 
-                { x: (x + (0 * w)) * 64, y: (y + (1 * h)) * 64, width: w, height: h, name: `${texts.get("w")} ${name}`, voiceId, subSection: "west"  },
-                { x: (x + (1 * w)) * 64, y: (y + (1 * h)) * 64, width: w, height: h, name: `${name}`, voiceId, subSection: null  },
-                { x: (x + (2 * w)) * 64, y: (y + (1 * h)) * 64, width: w, height: h, name: `${texts.get("e")} ${name}`, voiceId, subSection: "east"  },
+                { x: (x + (0 * w)), y: (y + (1 * h)), width: w, height: h, name: `${texts.get("w")} ${name}`, voiceId, subSection: "west"  },
+                { x: (x + (1 * w)), y: (y + (1 * h)), width: w, height: h, name: `${name}`, voiceId, subSection: null  },
+                { x: (x + (2 * w)), y: (y + (1 * h)), width: w, height: h, name: `${texts.get("e")} ${name}`, voiceId, subSection: "east"  },
 
-                { x: (x + (0 * w)) * 64, y: (y + (2 * h)) * 64, width: w, height: h, name: `${texts.get("sw")} ${name}`, voiceId, subSection: "south-west"  },
-                { x: (x + (1 * w)) * 64, y: (y + (2 * h)) * 64, width: w, height: h, name: `${texts.get("s")} ${name}`, voiceId, subSection: "south"  },
-                { x: (x + (2 * w)) * 64, y: (y + (2 * h)) * 64, width: w, height: h, name: `${texts.get("se")} ${name}`, voiceId, subSection: "south-east"  },
+                { x: (x + (0 * w)), y: (y + (2 * h)), width: w, height: h, name: `${texts.get("sw")} ${name}`, voiceId, subSection: "south-west"  },
+                { x: (x + (1 * w)), y: (y + (2 * h)), width: w, height: h, name: `${texts.get("s")} ${name}`, voiceId, subSection: "south"  },
+                { x: (x + (2 * w)), y: (y + (2 * h)), width: w, height: h, name: `${texts.get("se")} ${name}`, voiceId, subSection: "south-east"  },
             );
         }
     }

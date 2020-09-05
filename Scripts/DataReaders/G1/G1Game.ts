@@ -63,6 +63,5 @@ export async function loadAndCreate(missionId: number, renderer: WebGlCityRender
 
     texts.mapIndex = map.style;
 
-    renderer.buildCityModel(map, style);
     return new G1Game(map, style, new Mission(mission), texts, renderer, font1, font2, font3, font4, font5, audio1, audio2);
 }

@@ -4,12 +4,13 @@ import { IGameMap, IStyle, IVehicleInfo, IFont, IGameScript, IAudio, ITextContai
 import Entity from "./Entity";
 import Vehicle from "./WorldEntities/Vehicle";
 import Pager from "./GuiWidgets/Pager";
-import LocationInfo from "./GuiWidgets/LocationInfo";
 import KeyboardHandler from "./KeyboardHandler";
 import Trigger from "./WorldEntities/Trigger";
 import SubtitleBox from "./GuiWidgets/SubtitleBox";
 import TrainSystem from "./TrainSystem";
+import GuiWidget from "./GuiWidgets/GuiWidget";
 
+/** Game class is responsible updating game state. */
 export default class Game {
     private readonly subtitles: SubtitleBox | null = null;
     private readonly globalAudio: IAudio | null;
@@ -23,12 +24,13 @@ export default class Game {
     public readonly renderer: IRenderer;
     public readonly keyboard: KeyboardHandler;
     public readonly pager: Pager | null = null;
-    public readonly locationInfo: LocationInfo | null = null;
+    //public readonly locationInfo: LocationInfo | null = null;
     public readonly triggers: Trigger[] = [];
+    public readonly guiWidgets: GuiWidget[] = [];
     public player: Character | null = null;
     public vehicles: Vehicle[] = [];
-    //public camera: [number, number, number] = [128 * 64, 128 * 64, 10 * 64];
-    public camera: [number, number, number] = [150 * 64, 123 * 64, 10 * 64];
+    //public camera: [number, number, number] = [128, 128, 10];
+    public camera: [number, number, number] = [150, 123, 10];
     public targetScore: number = 0;
     public secretMissions: number = 0;
     public score: number = 0;
@@ -57,19 +59,19 @@ export default class Game {
         this.globalAudio = globalAudio;
         this.localAudio = localAudio;
 
-        // Run world initialization logic.
-        this.gameScript.initialize(this);
+        renderer.guiWidgets = this.guiWidgets;
+        renderer.buildCityModel(map, style);
+
 
         if (pagerFont) {
             this.pager = new Pager(this, renderer, style, pagerFont);
             this.renderer.guiEntities.push(this.pager);
         }
 
-
-        if (locationFont) {
-            this.locationInfo = new LocationInfo(this, renderer, style, locationFont);
-            this.renderer.guiEntities.push(this.locationInfo);
-        }
+        //if (locationFont) {
+        //    this.locationInfo = new LocationInfo(this, renderer, style, locationFont);
+        //    this.renderer.guiEntities.push(this.locationInfo);
+        //}
 
         if (subtitleFont) {
             this.subtitles = new SubtitleBox(this, this.renderer, style, subtitleFont);
@@ -82,9 +84,11 @@ export default class Game {
         const areas = [...map.areas];
         areas.sort((a1, a2) => (a1.height * a1.width) - (a2.height * a2.width));
         this.areas.push(...areas);
+    }
 
-        // Call resize event, so gui components are moved to right places.
-        this.resized();
+    public initialize() {
+        // Run world initialization logic.
+        this.gameScript.initialize(this);
     }
 
     /**
@@ -143,7 +147,7 @@ export default class Game {
 
                 if (this.keyboard.isPressed("enterExit")) {
                     let nearestVehicle: Vehicle | null = null;
-                    let nearestDistance: number = 96; // We can jump to car from 1,5 tiles away
+                    let nearestDistance: number = 1.5; // We can jump to car from 1,5 tiles away
                     for (const vehicle of this.vehicles) {
                         const dist = Math.sqrt(Math.pow(vehicle.x - this.player.x, 2) + Math.pow(vehicle.y - this.player.y, 2) + Math.pow(vehicle.z - this.player.z, 2));
                         if (dist < nearestDistance) {
@@ -158,9 +162,9 @@ export default class Game {
                 }
             }
 
-            this.camera = [this.player.x, this.player.y + 20, this.player.z - 192 + Math.abs(this.player.vehicle?.currentSpeed ?? 0) * 32];
+            this.camera = [this.player.x, this.player.y, this.player.z + 10/* - 5 + Math.abs(this.player.vehicle?.currentSpeed ?? 0) * .5*/];
         } else {
-            const speed = time * 500;
+            const speed = time * 10;
             if (this.keyboard.isDown("up")) {
                 this.camera = [this.camera[0], this.camera[1] - speed, this.camera[2]];
             } else if (this.keyboard.isDown("down")) {
@@ -173,28 +177,33 @@ export default class Game {
                 this.camera = [this.camera[0] + speed, this.camera[1], this.camera[2]];
             }
 
-            document.title = this.camera.map(x => (x / 64).toFixed(1)).join(",");
+            document.title = this.camera.map(x => x.toFixed(1)).join(",");
         }
 
         let location: IArea | null = null;
         for (const area of this.areas) {
-            const x1 = area.x * 64;
-            const x2 = (area.x + area.width) * 64;
-            const y1 = area.y * 64;
-            const y2 = (area.y + area.height) * 64;
+            const x1 = area.x;
+            const x2 = (area.x + area.width);
+            const y1 = area.y;
+            const y2 = (area.y + area.height);
             if ((this.camera[0] >= x1) && (this.camera[0] < x2) && (this.camera[1] >= y1) && (this.camera[1] < y2)) {
                 location = area;
                 break;
             }
         }
 
-        if (location && this.locationInfo && (location !== this.lastLocation)) {
+        if (location && (location !== this.lastLocation)) {
             this.lastLocation = location;
-            this.locationInfo.showText(location.name);
+            //this.locationInfo.showText(location.name);
+            this.setCurrentArea(location);
         }
 
         for (const entity of this.renderer.worldEntities) {
             entity.update(time);
+        }
+
+        for (const guiWidget of this.guiWidgets) {
+            guiWidget.update(time);
         }
 
         for (const entity of this.renderer.guiEntities) {
@@ -255,9 +264,14 @@ export default class Game {
 
     public resized(): void {
         const [width, height] = this.renderer.getViewSize();
-        if (this.locationInfo) {
-            this.locationInfo.x = (width / 2) - this.locationInfo.width;
+
+        for (const guiWidget of this.guiWidgets) {
+            guiWidget.areaChanged({ x: 0, y: 0, width, height });
         }
+
+        //if (this.locationInfo) {
+        //    this.locationInfo.x = (width / 2) - this.locationInfo.width;
+        //}
 
         if (this.subtitles) {
             this.subtitles.setLocation(width, height);
@@ -270,6 +284,10 @@ export default class Game {
 
     public keyUp(code: number) {
         this.keyboard.setKeyStatus(code, false);
+    }
+
+    public setCurrentArea(location: IArea) {
+        // Override in subclass.
     }
 
     public playSound(name: string): void {

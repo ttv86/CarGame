@@ -60,8 +60,13 @@ async function startGame() {
 
         window.addEventListener("keydown", (ev) => game.keyDown(ev.keyCode));
         window.addEventListener("keyup", (ev) => game.keyUp(ev.keyCode));
-
         window.addEventListener("resize", () => { renderer.resized(); game.resized(); });
+
+        // Call resize event, so gui components are moved to right places.
+        game.resized();
+
+        // All is set. Run game logic initilization.
+        game.initialize();
 
         let prev = 0;
         function step(time: number) {

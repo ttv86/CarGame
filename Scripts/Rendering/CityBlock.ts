@@ -3,6 +3,8 @@ import { IGameMap, IStyle, TextureTransform, IBlock, IWall, ILid, ITextureLocati
 import WebGlRenderer from "./WebGlCityRenderer";
 import Model, { IModelData } from "./Model";
 
+const twoThirds = 2 / 3;
+
 export default class CityBlock {
     private readonly animEnabled: boolean = false;
     private readonly flatModelData: IModelData | null = null;
@@ -44,7 +46,7 @@ export default class CityBlock {
         for (let f = 0; f < 2; f++) {
             let animTexCoords: number[] = [];
             const modelData: IModelDataBuilder = {
-                center: { x: (xx + (blockSize / 2)) * 64, y: (yy + (blockSize / 2)) * 64 },
+                center: { x: (xx + (blockSize / 2)), y: (yy + (blockSize / 2)) },
                 positions: [],
                 textureCoords: [],
                 indices: [],
@@ -60,14 +62,14 @@ export default class CityBlock {
                             continue;
                         }
 
-                        const topNorthWest: Point = [x * 64, y * 64, i * 64];
-                        const topNorthEast: Point = [(x + 1) * 64, y * 64, i * 64];
-                        const topSouthWest: Point = [x * 64, (y + 1) * 64, i * 64];
-                        const topSouthEast: Point = [(x + 1) * 64, (y + 1) * 64, i * 64];
-                        const bottomNorthWest: Point = [x * 64, y * 64, (i + 1) * 64];
-                        const bottomNorthEast: Point = [(x + 1) * 64, y * 64, (i + 1) * 64];
-                        const bottomSouthWest: Point = [x * 64, (y + 1) * 64, (i + 1) * 64];
-                        const bottomSouthEast: Point = [(x + 1) * 64, (y + 1) * 64, (i + 1) * 64];
+                        const topNorthWest: Point = [x, y, i];
+                        const topNorthEast: Point = [(x + 1), y, i];
+                        const topSouthWest: Point = [x, (y + 1), i];
+                        const topSouthEast: Point = [(x + 1), (y + 1), i];
+                        const bottomNorthWest: Point = [x, y, (i + 1)];
+                        const bottomNorthEast: Point = [(x + 1), y, (i + 1)];
+                        const bottomSouthWest: Point = [x, (y + 1), (i + 1)];
+                        const bottomSouthEast: Point = [(x + 1), (y + 1), (i + 1)];
 
                         adjustSlope(block.slope, topNorthWest, topNorthEast, topSouthWest, topSouthEast, bottomNorthWest, bottomNorthEast, bottomSouthWest, bottomSouthEast);
 
@@ -156,7 +158,7 @@ export default class CityBlock {
             modelData.indices.push(start + 0, start + 1, start + 2, start + 3, start + 2, start + 1);
             if (side.backTileIndex !== void 0) {
                 let transform = side.transform ?? TextureTransform.NoTransform;
-                //transform ^= 4; // Add/remove mirroring
+                transform ^= 4; // Add/remove mirroring
                 this.addSide({ ...side, tileIndex: side.backTileIndex, backTileIndex: void 0, transform }, point2, point1, point4, point3, modelData);
             }
         }
@@ -308,8 +310,8 @@ function adjustSlope(
         }
 
         const level = parts - ((slope - 1) % parts);
-        const upper = (level / parts) * 64;
-        const lower = ((level - 1) / parts) * 64;
+        const upper = (level / parts);
+        const lower = ((level - 1) / parts);
         up[0][2] += lower;
         up[1][2] += lower;
         down[0][2] += upper;
@@ -374,33 +376,33 @@ function adjustSlope(
 
     if ((slope === 53) || (slope === 57) || (slope === 60)) {
         // short left
-        topNorthEast[0] -= 40;
-        topSouthEast[0] -= 40;
-        bottomNorthEast[0] -= 40;
-        bottomSouthEast[0] -= 40;
+        topNorthEast[0] -= twoThirds;
+        topSouthEast[0] -= twoThirds;
+        bottomNorthEast[0] -= twoThirds;
+        bottomSouthEast[0] -= twoThirds;
     }
 
     if ((slope === 54) || (slope === 58) || (slope === 59)) {
         // short right
-        topNorthWest[0] += 40;
-        topSouthWest[0] += 40;
-        bottomNorthWest[0] += 40;
-        bottomSouthWest[0] += 40;
+        topNorthWest[0] += twoThirds;
+        topSouthWest[0] += twoThirds;
+        bottomNorthWest[0] += twoThirds;
+        bottomSouthWest[0] += twoThirds;
     }
 
     if ((slope === 55) || (slope === 57) || (slope === 58)) {
         // short top
-        topSouthEast[1] -= 40;
-        topSouthWest[1] -= 40;
-        bottomSouthEast[1] -= 40;
-        bottomSouthWest[1] -= 40;
+        topSouthEast[1] -= twoThirds;
+        topSouthWest[1] -= twoThirds;
+        bottomSouthEast[1] -= twoThirds;
+        bottomSouthWest[1] -= twoThirds;
     }
 
     if ((slope === 56) || (slope === 59) || (slope === 60)) {
         // short bottom
-        topNorthEast[1] += 40;
-        topNorthWest[1] += 40;
-        bottomNorthEast[1] += 40;
-        bottomNorthWest[1] += 40;
+        topNorthEast[1] += twoThirds;
+        topNorthWest[1] += twoThirds;
+        bottomNorthEast[1] += twoThirds;
+        bottomNorthWest[1] += twoThirds;
     }
 }
