@@ -9,6 +9,7 @@ import Font from "./Font";
 import Audio from "./Audio";
 import Mission from "./Mission";
 import { IGameMap, IStyle, IGameScript, ITextContainer, IFont, IAudio } from "../Interfaces";
+import Character, { ICharacterAnimation } from "../../WorldEntities/Character";
 
 export default class G1Game extends Game {
     constructor(
@@ -25,6 +26,12 @@ export default class G1Game extends Game {
         globalAudio: IAudio,
         localAudio: IAudio) {
         super(map, style, gameScript, texts, renderer, subtitleFont, pointFont, locationFont, lifeFont, pagerFont, globalAudio, localAudio);
+    }
+
+    public addPlayer(x: number, y: number, z: number, angle: number): Character {
+        this.player = new Character(characterAnimation, x, y, z, angle);
+        this.renderer.worldEntities.push(this.player);
+        return this.player;
     }
 }
 
@@ -64,4 +71,10 @@ export async function loadAndCreate(missionId: number, renderer: WebGlCityRender
     texts.mapIndex = map.style;
 
     return new G1Game(map, style, new Mission(mission), texts, renderer, font1, font2, font3, font4, font5, audio1, audio2);
+}
+
+const characterAnimation: ICharacterAnimation = {
+    stand: [743],
+    run: [654,655,656,657,658,659,660],
+    walk: [645,646,647,648,649,650,651,652],
 }

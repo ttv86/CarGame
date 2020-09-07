@@ -8,7 +8,7 @@ export default class Sprite {
     public readonly height: number;
     public readonly model: Model | null;
 
-    constructor(renderer: IRenderer, style: IStyle, spriteIndex: number, x: number = 0, y: number = 0) {
+    constructor(renderer: IRenderer, style: IStyle, spriteIndex: number) {
         this.renderer = renderer;
 
         const position = style.getSpritePosition(spriteIndex);
@@ -22,7 +22,7 @@ export default class Sprite {
 
         this.width = position.width;
         this.height = position.height;
-        this.model = renderer.createModelFromSprite(position, style.spriteImageData, x, y);
+        this.model = renderer.createModelFromSprite(position, style.spriteImageData);
     }
 
     public render() {

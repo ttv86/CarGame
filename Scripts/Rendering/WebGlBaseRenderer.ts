@@ -39,12 +39,17 @@ export default class WebGlBaseRenderer implements IBaseRenderer {
         this.gl.blendFunc(WebGLRenderingContext.SRC_ALPHA, WebGLRenderingContext.ONE_MINUS_SRC_ALPHA);
     }
 
-    public resized() {
+    public resized(): [number, number] {
         this.width = this.canvas.offsetWidth;
         this.height = this.canvas.offsetHeight;
-        this.canvas.width = this.width;
-        this.canvas.height = this.height;
-        this.gl.viewport(0, 0, this.width, this.height);
+        this.canvas.width = this.width * window.devicePixelRatio;
+        this.canvas.height = this.height * window.devicePixelRatio;
+        this.gl.viewport(0, 0, this.width * window.devicePixelRatio, this.height * window.devicePixelRatio);
+        return [this.width, this.height];
+    }
+
+    public getViewSize(): [number, number] {
+        return [this.width, this.height];
     }
 
     public createTextModel(modelData: IModelData): Model {
@@ -201,6 +206,8 @@ export class Program {
 }
 
 export interface IBaseRenderer {
+    getViewSize(): [number, number];
+    resized(): [number, number];
     createTextModel(modelData: IModelData): Model;
     createTextBuffer(x: number, y: number, width: number, height: number, font: IFont, options?: ITextBufferOptions): ITextBuffer;
 }

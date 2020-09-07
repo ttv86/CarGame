@@ -15,25 +15,26 @@ const blockSize = 16;
 export default class WebGlRenderer extends WebGlBaseRenderer implements IRenderer {
     private models: Model[] = [];
     private blocks: CityBlock[] = [];
+    private tileTexture: WebGLTexture | null = null;
+    private spriteTexture: WebGLTexture | null = null;
+    private spriteModels = new Map<number, Model>();
+    private readonly style: IStyle;
 
     public x: number = 0;
     public y: number = 0;
     public altitude: number = 20;
     public readonly debugModels: WireframeModel[] = [];
     public readonly worldEntities: Entity[] = [];
-    public readonly guiEntities: Entity[] = [];
+    //public readonly guiEntities: Entity[] = [];
     public guiWidgets: GuiWidget[] = [];
-    private tileTexture: WebGLTexture | null = null;
-    private spriteTexture: WebGLTexture | null = null;
-
 
     //private wireframe: WireframeModel;
     //private obj: PhysicsObject;
     //private objR: number = 0;
 
-    constructor(canvas: HTMLCanvasElement) {
+    constructor(canvas: HTMLCanvasElement, style: IStyle) {
         super(canvas);
-
+        this.style = style;
         ////const po = new PhysicsObject([105 * 64, 119 * 64, 4 * 64], [2, 2, 2]);
         //this.wireframe = new WireframeModel(this.gl);
         ////wireframe.setData([105 * 64, 119 * 64, 0 * 64, 106 * 64, 120 * 64, 5 * 64], [0, 1]);
@@ -89,8 +90,9 @@ export default class WebGlRenderer extends WebGlBaseRenderer implements IRendere
         //         8, 12,  9, 13, 10, 14, 11, 15
         //]);
 
+        const [, , cameraZ] = this.coordinateToWorldPoint(0, 0, this.altitude);
         const projection = mat4.perspective(mat4.create(), 0.84, this.width / this.height, 0.1, 6400);
-        const world = mat4.lookAt(mat4.create(), [0, 0, -this.altitude], [0, 0, 1000], [0, -1, 0]);
+        const world = mat4.lookAt(mat4.create(), [0, 0, cameraZ], [0, 0, -cameraZ], [0, -1, 0]);
         this.program.projectionMatrix = projection;
         this.program.worldMatrix = world;
 
@@ -109,15 +111,17 @@ export default class WebGlRenderer extends WebGlBaseRenderer implements IRendere
         }
 
         for (const entity of this.worldEntities) {
-            if (entity.visible) {
-                mat4.identity(view);
-                mat4.translate(view, view, [entity.x - this.x, this.y - entity.y, 1 - entity.z]);
+            //if (entity.visible) {
+            mat4.identity(view);
+            const worldPoint = this.coordinateToWorldPoint(entity.x, entity.y, entity.z);
+            mat4.translate(view, view, [worldPoint[0] - this.x, this.y - worldPoint[1], -worldPoint[2]]);
                 mat4.rotateZ(view, view, entity.rotation);
-                mat4.translate(view, view, [-entity.width / 2, entity.height / 2, 0]);
+                //mat4.translate(view, view, [-entity.width / 2, entity.height / 2, 0]);
 
-                this.program.viewMatrix = view;
-                entity.render();
-            }
+            this.program.viewMatrix = view;
+            this.renderEntity(entity);
+                //entity.render();
+            //}
         }
 
         //// vvvvvv DEBUG vvvvvv
@@ -148,13 +152,13 @@ export default class WebGlRenderer extends WebGlBaseRenderer implements IRendere
             guiWidget.renderIfVisible();
         }
 
-        for (const entity of this.guiEntities) {
-            if (entity.visible) {
-                mat4.lookAt(world, [-entity.x, -entity.y, 10], [-entity.x, -entity.y, 0], [0, 1, 0]);
-                this.program.worldMatrix = world;
-                entity.render();
-            }
-        }
+        //for (const entity of this.guiEntities) {
+        //    //if (entity.visible) {
+        //        mat4.lookAt(world, [-entity.x, -entity.y, 10], [-entity.x, -entity.y, 0], [0, 1, 0]);
+        //        this.program.worldMatrix = world;
+        //        entity.render();
+        //    //}
+        //}
     }
 
     public buildCityModel(map: IGameMap, style: IStyle) {
@@ -190,7 +194,7 @@ export default class WebGlRenderer extends WebGlBaseRenderer implements IRendere
         return result;
     }
 
-    public createModelFromSprite(spriteInfo: ISpriteLocation, modelTexture: HTMLImageElement | HTMLCanvasElement | ImageData, offsetX: number = 0, offsetY: number = 0): Model {
+    public createModelFromSprite(spriteInfo: ISpriteLocation, modelTexture: HTMLImageElement | HTMLCanvasElement | ImageData, centered: boolean = false, ratio: number = 1): Model {
         let texture = this.textureMap.get(modelTexture);
         if (!texture) {
             texture = this.loadTexture(modelTexture);
@@ -199,8 +203,14 @@ export default class WebGlRenderer extends WebGlBaseRenderer implements IRendere
 
         const w = spriteInfo.width;
         const h = spriteInfo.height;
+        const offsetX = centered ? (-w / 2) : 0;
+        const offsetY = centered ? (-h / 2) : 0;
         const modelData: IModelData = {
-            positions: [offsetX + 0, offsetY + 0, 0, offsetX + w, offsetY + 0, 0, offsetX + 0, offsetY + h, 0, offsetX + w, offsetY + h, 0],
+            positions: [
+                (offsetX + 0) * ratio, (offsetY + 0) * ratio, 0,
+                (offsetX + w) * ratio, (offsetY + 0) * ratio, 0,
+                (offsetX + 0) * ratio, (offsetY + h) * ratio, 0,
+                (offsetX + w) * ratio, (offsetY + h) * ratio, 0],
             texture: modelTexture,
             center: { x: 0, y: 0 },
             indices: [0, 1, 2, 2, 1, 3],
@@ -248,10 +258,6 @@ export default class WebGlRenderer extends WebGlBaseRenderer implements IRendere
         this.program.worldMatrix = world;
     }
 
-    public getViewSize(): [number, number] {
-        return [this.width, this.height];
-    }
-
     public clip(area: [number, number, number, number] | null): void {
         if (area) {
             const y = this.height - (area[1] + area[3]);
@@ -260,6 +266,33 @@ export default class WebGlRenderer extends WebGlBaseRenderer implements IRendere
         } else {
             this.gl.disable(WebGLRenderingContext.SCISSOR_TEST);
         }
+    }
+
+    public coordinateToWorldPoint(x: number, y: number, z: number): Point {
+        return [x, y, 0 - z];
+    }
+
+    private renderEntity(entity: Entity) {
+        const spriteIndex = entity.getSpriteIndex()
+        if (typeof spriteIndex === "number") {
+            const model = this.getSpriteModel(spriteIndex);
+            model.draw(this.gl, this.program);
+        }
+    }
+
+    private getSpriteModel(spriteIndex: number): Model {
+        let result = this.spriteModels.get(spriteIndex);
+        if (!result) {
+            const pos = this.style.getSpritePosition(spriteIndex);
+            if (!pos) {
+                throw new Error("Can't find sprite");
+            }
+
+            result = this.createModelFromSprite(pos, this.style.spriteImageData, true, 1 / 64);
+            this.spriteModels.set(spriteIndex, result);
+        }
+
+        return result;
     }
 }
 
@@ -273,13 +306,13 @@ export default class WebGlRenderer extends WebGlBaseRenderer implements IRendere
 
 export interface IRenderer extends IBaseRenderer {
     readonly worldEntities: Entity[];
-    readonly guiEntities: Entity[];
+    //readonly guiEntities: Entity[];
     guiWidgets: readonly GuiWidget[];
 
     buildCityModel(map: IGameMap, style: IStyle): void;
     update(time: number): void;
     setCamera(position: [number, number, number]): void;
-    getViewSize(): [number, number];
+    renderScene(): void;
     render(model: Model): void;
     render(sprite: Sprite): void;
     render(textBuffer: ITextBuffer): void;
@@ -287,8 +320,8 @@ export interface IRenderer extends IBaseRenderer {
     renderSprite(model: Model, x: number, y: number): void;
     renderSprite(model: Model, x: number, y: number, width: number, height: number): void;
     clip(area: [number, number, number, number] | null): void;
-    createModel(modelData: IModelData): void;
-    createModelFromSprite(spriteInfo: ISpriteLocation, modelTexture: HTMLImageElement | HTMLCanvasElement | ImageData, offsetX?: number, offsetY?: number): Model;
+    createModel(modelData: IModelData): Model;
+    createModelFromSprite(spriteInfo: ISpriteLocation, modelTexture: HTMLImageElement | HTMLCanvasElement | ImageData, centered?: boolean, ratio?: number): Model;
     
 }
 

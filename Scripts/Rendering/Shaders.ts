@@ -34,7 +34,7 @@ void main(void) {
         color = vec4(solidColor,1.0);
     } else {
         vec4 texColor = texture(sampler, vec2(vTextureCoord.s, vTextureCoord.t));
-        if (texColor.a < 1.0) {
+        if (texColor.a < 0.5) {
             if (useAlpha) {
                 discard;
             } else {

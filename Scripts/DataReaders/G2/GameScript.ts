@@ -26,8 +26,7 @@ export default class GameScript extends GameScriptBase {
                 case "setPlayerPosition":
                     const coordinates = <[number, number, number]>params[0];
                     const angle = <number>params[1];
-                    this.game.player = new Character(this.game, this.game.renderer, this.game.style, coordinates[0], coordinates[1], coordinates[2], angle * (Math.PI / 180));
-                    this.game.renderer.worldEntities.push(this.game.player);
+                    this.game.addPlayer(coordinates[0], coordinates[1], coordinates[2], angle * (Math.PI / 180));
                     break;
                 case "setGangInfo":
                     game.addGang(<number>params[5]);

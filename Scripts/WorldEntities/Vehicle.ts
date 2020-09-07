@@ -12,8 +12,9 @@ export default class Vehicle extends Entity {
     private turning = false;
     private wheelAngle = 0;
 
-    constructor(game: Game, renderer: IRenderer, style: IStyle, x: number, y: number, z: number, rotation: number, info: IVehicleInfo) {
-        super(game, renderer, style, 0, x, y, z);
+    constructor(info: IVehicleInfo) {
+        super(0, 0, 0);
+        //super(game, renderer, style, 0, x, y, z);
         throw new Error("Not implemented");
         //super(game, renderer, style, info.sprNum + style.spriteOffsets.Car, x, y, z);
         //this.rotation = rotation;
@@ -47,48 +48,48 @@ export default class Vehicle extends Entity {
     }
 
     public update(time: number) {
-        const sin = Math.sin(this.rotation);
-        const cos = Math.cos(this.rotation);
-        if (this.currentSpeed !== 0) {
-            let newX: number, newY: number;
-            if (this.wheelAngle !== 0) {
-                newX = this.x + sin * this.currentSpeed;
-                newY = this.y + cos * this.currentSpeed;
-                this.rotation += this.wheelAngle * time * this.currentSpeed;
-            } else {
-                newX = this.x + sin * this.currentSpeed;
-                newY = this.y + cos * this.currentSpeed;
-            }
+        //const sin = Math.sin(this.rotation);
+        //const cos = Math.cos(this.rotation);
+        //if (this.currentSpeed !== 0) {
+        //    let newX: number, newY: number;
+        //    if (this.wheelAngle !== 0) {
+        //        newX = this.x + sin * this.currentSpeed;
+        //        newY = this.y + cos * this.currentSpeed;
+        //        this.rotation += this.wheelAngle * time * this.currentSpeed;
+        //    } else {
+        //        newX = this.x + sin * this.currentSpeed;
+        //        newY = this.y + cos * this.currentSpeed;
+        //    }
 
-            const xx = (cos * this.width / 2) + (sin * this.height / 2);
-            const yy = (sin * this.width / 2) + (cos * this.height / 2 );
+        //    const xx = (cos * this.width / 2) + (sin * this.height / 2);
+        //    const yy = (sin * this.width / 2) + (cos * this.height / 2 );
 
-            if (!(this.hitTest(newX + xx, newY + yy, this.z) || this.hitTest(newX - xx, newY - yy, this.z) || this.hitTest(newX + xx, newY - yy, this.z) || this.hitTest(newX - xx, newY + yy, this.z))) {
-                this.x = newX;
-                this.y = newY;
-            } else {
-                this.currentSpeed = 0;
-            }
+        //    if (!(this.hitTest(newX + xx, newY + yy, this.z) || this.hitTest(newX - xx, newY - yy, this.z) || this.hitTest(newX + xx, newY - yy, this.z) || this.hitTest(newX - xx, newY + yy, this.z))) {
+        //        this.x = newX;
+        //        this.y = newY;
+        //    } else {
+        //        this.currentSpeed = 0;
+        //    }
 
-            if (!this.speedChanging) {
-                this.currentSpeed *= 1 - time;
-                if (Math.abs(this.currentSpeed) < 0.01) {
-                    this.currentSpeed = 0;
-                }
-            }
+        //    if (!this.speedChanging) {
+        //        this.currentSpeed *= 1 - time;
+        //        if (Math.abs(this.currentSpeed) < 0.01) {
+        //            this.currentSpeed = 0;
+        //        }
+        //    }
 
-            if (!this.turning) {
-                //if (this.wheelAngle > 0) {
-                //    this.wheelAngle = Math.max(0, this.wheelAngle - time);
-                //} else {
-                //    this.wheelAngle = Math.min(0, this.wheelAngle + time);
-                //}
-                this.wheelAngle = 0;
-            }
-        }
+        //    if (!this.turning) {
+        //        //if (this.wheelAngle > 0) {
+        //        //    this.wheelAngle = Math.max(0, this.wheelAngle - time);
+        //        //} else {
+        //        //    this.wheelAngle = Math.min(0, this.wheelAngle + time);
+        //        //}
+        //        this.wheelAngle = 0;
+        //    }
+        //}
 
-        this.speedChanging = false;
-        this.turning = false;
+        //this.speedChanging = false;
+        //this.turning = false;
     }
 
     public currentSpeed: number;
@@ -106,6 +107,10 @@ export default class Vehicle extends Entity {
         //}
 
         return false;
+    }
+
+    public getSpriteIndex(): number {
+        return 0;
     }
 }
 

@@ -3,16 +3,16 @@ import { IRenderer } from "./Rendering/WebGlCityRenderer";
 import { IGameMap, IStyle, IVehicleInfo, IFont, IGameScript, IAudio, ITextContainer, IArea } from "./DataReaders/Interfaces";
 import Entity from "./Entity";
 import Vehicle from "./WorldEntities/Vehicle";
-import Pager from "./GuiWidgets/Pager";
+//import Pager from "./DataReaders/G1/Pager";
 import KeyboardHandler from "./KeyboardHandler";
 import Trigger from "./WorldEntities/Trigger";
-import SubtitleBox from "./GuiWidgets/SubtitleBox";
+//import SubtitleBox from "./GuiWidgets/SubtitleBox";
 import TrainSystem from "./TrainSystem";
 import GuiWidget from "./GuiWidgets/GuiWidget";
 
 /** Game class is responsible updating game state. */
 export default class Game {
-    private readonly subtitles: SubtitleBox | null = null;
+    //private readonly subtitles: SubtitleBox | null = null;
     private readonly globalAudio: IAudio | null;
     private readonly localAudio: IAudio | null;
     private readonly areas: IArea[] = [];
@@ -23,7 +23,7 @@ export default class Game {
     public readonly texts: ITextContainer;
     public readonly renderer: IRenderer;
     public readonly keyboard: KeyboardHandler;
-    public readonly pager: Pager | null = null;
+    //public readonly pager: Pager | null = null;
     //public readonly locationInfo: LocationInfo | null = null;
     public readonly triggers: Trigger[] = [];
     public readonly guiWidgets: GuiWidget[] = [];
@@ -63,20 +63,20 @@ export default class Game {
         renderer.buildCityModel(map, style);
 
 
-        if (pagerFont) {
-            this.pager = new Pager(this, renderer, style, pagerFont);
-            this.renderer.guiEntities.push(this.pager);
-        }
+        //if (pagerFont) {
+        //    this.pager = new Pager(this, renderer, style, pagerFont);
+        //    this.renderer.guiEntities.push(this.pager);
+        //}
 
         //if (locationFont) {
         //    this.locationInfo = new LocationInfo(this, renderer, style, locationFont);
         //    this.renderer.guiEntities.push(this.locationInfo);
         //}
 
-        if (subtitleFont) {
-            this.subtitles = new SubtitleBox(this, this.renderer, style, subtitleFont);
-            this.renderer.guiEntities.push(this.subtitles);
-        }
+        //if (subtitleFont) {
+        //    this.subtitles = new SubtitleBox(this, this.renderer, style, subtitleFont);
+        //    this.renderer.guiEntities.push(this.subtitles);
+        //}
 
         this.trainSystem = new TrainSystem(this, map, style);
 
@@ -89,6 +89,11 @@ export default class Game {
     public initialize() {
         // Run world initialization logic.
         this.gameScript.initialize(this);
+    }
+
+    public addPlayer(x: number, y: number, z: number, angle: number): Character {
+        // NOTE: Not implemented;
+        throw new Error("Not implemented");
     }
 
     /**
@@ -162,7 +167,7 @@ export default class Game {
                 }
             }
 
-            this.camera = [this.player.x, this.player.y, this.player.z + 10/* - 5 + Math.abs(this.player.vehicle?.currentSpeed ?? 0) * .5*/];
+            this.camera = [this.player.x, this.player.y, this.player.z + 8/* - 5 + Math.abs(this.player.vehicle?.currentSpeed ?? 0) * .5*/];
         } else {
             const speed = time * 10;
             if (this.keyboard.isDown("up")) {
@@ -198,17 +203,19 @@ export default class Game {
             this.setCurrentArea(location);
         }
 
+        // Update game world.
         for (const entity of this.renderer.worldEntities) {
             entity.update(time);
         }
 
+        // Update gui.
         for (const guiWidget of this.guiWidgets) {
             guiWidget.update(time);
         }
 
-        for (const entity of this.renderer.guiEntities) {
-            entity.update(time);
-        }
+        //for (const entity of this.renderer.guiEntities) {
+        //    entity.update(time);
+        //}
 
         this.renderer.update(time);
         this.renderer.setCamera(this.camera);
@@ -263,7 +270,7 @@ export default class Game {
     }
 
     public resized(): void {
-        const [width, height] = this.renderer.getViewSize();
+        const [width, height] = this.renderer.resized();
 
         for (const guiWidget of this.guiWidgets) {
             guiWidget.areaChanged({ x: 0, y: 0, width, height });
@@ -273,9 +280,9 @@ export default class Game {
         //    this.locationInfo.x = (width / 2) - this.locationInfo.width;
         //}
 
-        if (this.subtitles) {
-            this.subtitles.setLocation(width, height);
-        }
+        //if (this.subtitles) {
+        //    this.subtitles.setLocation(width, height);
+        //}
     }
 
     public keyDown(code: number) {
@@ -349,9 +356,9 @@ export default class Game {
 
     public showText(textReference: number, type: "mouth" | "phone" | "mobile"): void {
         // TODO: Not implemented.
-        if (this.subtitles) {
-            this.subtitles.setText(this.texts.get(textReference.toString(), true) ?? "N/A");
-        }
+        //if (this.subtitles) {
+        //    this.subtitles.setText(this.texts.get(textReference.toString(), true) ?? "N/A");
+        //}
     }
 }
 

@@ -150,7 +150,7 @@ export default class GameMap implements IGameMap {
                 for (; offset < height; offset++) {
                     columnPointer++;
                     const block = blocks[columns[columnPointer]];
-                    column[7 - offset] = createBlock(block);
+                    column[offset] = createBlock(block);
                 }
             }
         }

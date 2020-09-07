@@ -1,4 +1,5 @@
 import WebGlCityRenderer from "./Rendering/WebGlCityRenderer";
+import { IStyle } from "./DataReaders/Interfaces";
 
 let gameDataDir: string | null = null;
 function loadFile(filename: string): Promise<DataView> {
@@ -50,17 +51,16 @@ async function startGame() {
         canvas.style.width = "100vw";
         canvas.style.height = "100vh";
         document.body.appendChild(canvas);
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        canvas.width = window.innerWidth * window.devicePixelRatio;
+        canvas.height = window.innerHeight * window.devicePixelRatio;
 
-
-        const renderer = new WebGlCityRenderer(canvas);
+        const rendererFactory = (style: IStyle) => new WebGlCityRenderer(canvas, style);
         //const game = await (await import("./DataReaders/G1/G1Game")).loadAndCreate(1, renderer, loadFile);
-        const game = await (await import("./DataReaders/G2/G2Game")).loadAndCreate("wil", renderer, loadFile);
+        const game = await (await import("./DataReaders/G2/G2Game")).loadAndCreate("wil", rendererFactory, loadFile);
 
         window.addEventListener("keydown", (ev) => game.keyDown(ev.keyCode));
         window.addEventListener("keyup", (ev) => game.keyUp(ev.keyCode));
-        window.addEventListener("resize", () => { renderer.resized(); game.resized(); });
+        window.addEventListener("resize", () => game.resized());
 
         // Call resize event, so gui components are moved to right places.
         game.resized();
@@ -74,7 +74,7 @@ async function startGame() {
             game.update((time - prev) / 1000);
 
             // Then render current state.
-            renderer.renderScene();
+            game.renderer.renderScene();
 
             // Finally request next frame.
             prev = time;

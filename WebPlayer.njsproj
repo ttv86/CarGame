@@ -158,7 +158,7 @@
     <TypeScriptCompile Include="Scripts\Game.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
-    <TypeScriptCompile Include="Scripts\GuiWidgets\Pager.ts">
+    <TypeScriptCompile Include="Scripts\DataReaders\G1\Pager.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
     <TypeScriptCompile Include="Scripts\Main.ts">

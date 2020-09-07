@@ -1,24 +1,38 @@
-import { IStyle, IFont } from "../DataReaders/Interfaces";
-import { IRenderer } from "../Rendering/WebGlCityRenderer";
-import Entity from "../Entity";
-import Sprite from "../Sprite";
-import { ITextBuffer } from "../Rendering/TextBuffer";
-import Game from "../Game";
+import { IStyle, IFont } from "../Interfaces";
+import { IRenderer } from "../../Rendering/WebGlCityRenderer";
+import { ITextBuffer } from "../../Rendering/TextBuffer";
+import Game from "../../Game";
+import GuiWidget from "../../GuiWidgets/GuiWidget";
+import Model from "../../Rendering/Model";
 
-export default class Pager extends Entity {
-    private light: Sprite;
-    private lightVisible: boolean = false;
-    private lightTime: number = 0;
-    private textTime: number = 0;
+export default class Pager extends GuiWidget {
+    private light: Model;
+    private lightVisible: boolean;
+    private lightTime: number;
+    private textTime: number;
     private textBuffer: ITextBuffer;
-    private position: number = 0;
-    private hideLimit: number = 0;
+    private position: number;
+    private hideLimit: number;
+    private renderer: IRenderer;
 
-    constructor(game: Game, renderer: IRenderer, style: IStyle, font: IFont) {
-        super(game, renderer, style, 28, 0, 0, 0);
-        this.light = new Sprite(renderer, style, 29, 22, 38);
+    constructor(game: Game, renderer: IRenderer, style: IStyle, font: IFont, spriteIndex: number) {
+        const spriteInfo = style.getSpritePosition(spriteIndex);
+        if (!spriteInfo) {
+            throw new Error("Failed to get sprite information.");
+        }
+
+        //super(game, renderer, style, 28, 0, 0, 0);
+        super("top", spriteInfo.height);
+        this.light = renderer.createModelFromSprite(spriteInfo, style.spriteImageData);
+        this.lightVisible = false;
+        this.lightTime = 0;
+        this.textTime = 0;
+        this.position = 0;
+        this.hideLimit = 0;
+        this.renderer = renderer;
+        //this.light = new Sprite(renderer, style, 29, 22, 38);
         this.textBuffer = renderer.createTextBuffer(22, 14, 116, 18, font, { verticalAlign: "middle", wordWrap: false });
-        this.visible = false;
+        //this.visible = false;
     }
 
     public setText(text: string) {

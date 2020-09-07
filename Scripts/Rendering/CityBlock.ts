@@ -56,20 +56,21 @@ export default class CityBlock {
 
             for (let y = yy; y < yy + blockSize; y++) {
                 for (let x = xx; x < xx + blockSize; x++) {
+                    //let i = 6; {
                     for (let i = 0; i < map.maxAltitude; i++) {
                         const block = map.getBlock(x, y, i);
                         if (!block) {
                             continue;
                         }
 
-                        const topNorthWest: Point = [x, y, i];
-                        const topNorthEast: Point = [(x + 1), y, i];
-                        const topSouthWest: Point = [x, (y + 1), i];
-                        const topSouthEast: Point = [(x + 1), (y + 1), i];
-                        const bottomNorthWest: Point = [x, y, (i + 1)];
-                        const bottomNorthEast: Point = [(x + 1), y, (i + 1)];
-                        const bottomSouthWest: Point = [x, (y + 1), (i + 1)];
-                        const bottomSouthEast: Point = [(x + 1), (y + 1), (i + 1)];
+                        const topNorthWest: Point = renderer.coordinateToWorldPoint(x, y, i);
+                        const topNorthEast: Point = renderer.coordinateToWorldPoint((x + 1), y, i);
+                        const topSouthWest: Point = renderer.coordinateToWorldPoint(x, (y + 1), i);
+                        const topSouthEast: Point = renderer.coordinateToWorldPoint((x + 1), (y + 1), i);
+                        const bottomNorthWest: Point = renderer.coordinateToWorldPoint(x, y, (i - 1));
+                        const bottomNorthEast: Point = renderer.coordinateToWorldPoint((x + 1), y, (i - 1));
+                        const bottomSouthWest: Point = renderer.coordinateToWorldPoint(x, (y + 1), (i - 1));
+                        const bottomSouthEast: Point = renderer.coordinateToWorldPoint((x + 1), (y + 1), (i - 1));
 
                         adjustSlope(block.slope, topNorthWest, topNorthEast, topSouthWest, topSouthEast, bottomNorthWest, bottomNorthEast, bottomSouthWest, bottomSouthEast);
 

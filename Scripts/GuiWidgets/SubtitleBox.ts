@@ -1,27 +1,27 @@
-import Entity from "../Entity";
-import Game from "../Game";
-import { IRenderer } from "../Rendering/WebGlCityRenderer";
-import { IStyle, IFont } from "../DataReaders/Interfaces";
-import { ITextBuffer } from "../Rendering/TextBuffer";
+//import Entity from "../Entity";
+//import Game from "../Game";
+//import { IRenderer } from "../Rendering/WebGlCityRenderer";
+//import { IStyle, IFont } from "../DataReaders/Interfaces";
+//import { ITextBuffer } from "../Rendering/TextBuffer";
 
-export default class SubtitleBox extends Entity {
-    private readonly subtitleTextBuffer: ITextBuffer;
+//export default class SubtitleBox extends Entity {
+//    private readonly subtitleTextBuffer: ITextBuffer;
 
-    constructor(game: Game, renderer: IRenderer, style: IStyle, font: IFont) {
-        super(game, renderer, style, 0, 0, 0, 0);
+//    constructor(game: Game, renderer: IRenderer, style: IStyle, font: IFont) {
+//        super(game, renderer, style, 0, 0, 0, 0);
 
-        this.subtitleTextBuffer = renderer.createTextBuffer(64, 0, 1000, 1000, font, { verticalAlign: "bottom", wordWrap: true });
-    }
+//        this.subtitleTextBuffer = renderer.createTextBuffer(64, 0, 1000, 1000, font, { verticalAlign: "bottom", wordWrap: true });
+//    }
 
-    public setText(text: string) {
-        this.subtitleTextBuffer.setText(text);
-    }
+//    public setText(text: string) {
+//        this.subtitleTextBuffer.setText(text);
+//    }
 
-    public render() {
-        this.renderer.render(this.subtitleTextBuffer);
-    }
+//    public render() {
+//        this.renderer.render(this.subtitleTextBuffer);
+//    }
 
-    public setLocation(width: number, height: number) {
-        this.subtitleTextBuffer.setLocation(64, height - 200, width - 64, 200);
-    }
-}
+//    public setLocation(width: number, height: number) {
+//        this.subtitleTextBuffer.setLocation(64, height - 200, width - 64, 200);
+//    }
+//}

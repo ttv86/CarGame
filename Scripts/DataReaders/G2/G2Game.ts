@@ -10,12 +10,13 @@ import WebGlCityRenderer, { IRenderer } from "../../Rendering/WebGlCityRenderer"
 //import Mission from "./Mission";
 import { IGameMap, IStyle, IGameScript, ITextContainer, IFont, IAudio, IArea } from "../Interfaces";
 import Style from "./Style";
-import GameScript, { readScript } from "./GameScript";
+import GameScript from "./GameScript";
 import GameMap from "./GameMap";
 import TextContainer from "./TextContainer";
 import GuiWidget, { WidgetContainer, TextPanelWidget } from "../../GuiWidgets/GuiWidget";
 import GangAffiliationWidget from "./GangAffiliationWidget";
 import HeadWidget from "../G_Shared/HeadWidget";
+import Character, { ICharacterAnimation } from "../../WorldEntities/Character";
 
 export default class G2Game extends Game {
     private readonly location: TextPanelWidget;
@@ -65,12 +66,30 @@ export default class G2Game extends Game {
         }
     }
 
+    public addPlayer(x: number, y: number, z: number, angle: number): Character {
+        this.player = this.addCharacter(x, y, z, angle);
+        return this.player;
+    }
+
+    public addCharacter(x: number, y: number, z: number, angle: number): Character {
+        const characterType = 1;
+        const addBase = (x: number) => (<Style>this.style).spriteBase.pedestrian + (characterType * 158) + x;
+        const frames: ICharacterAnimation = {
+            stand: characterAnimation.stand.map(addBase),
+            walk: characterAnimation.walk.map(addBase),
+            run: characterAnimation.run.map(addBase),
+        };
+        const character = new Character(frames, x, y, z - 0.99, angle);
+        this.renderer.worldEntities.push(character);
+        return character;
+    }
+
     public setCurrentArea(location: IArea) {
         this.location.showText(location.name.toUpperCase());
     }
 }
 
-export async function loadAndCreate(missionName: string, renderer: WebGlCityRenderer, loadFile: (file: string) => Promise<DataView>): Promise<Game> {
+export async function loadAndCreate(missionName: string, rendererFactory: (style: IStyle) => WebGlCityRenderer, loadFile: (file: string) => Promise<DataView>): Promise<Game> {
 
     const [styleDataView, mapDataView, scriptDataView, textDataView] = await Promise.all(
         [loadFile(`G2/${missionName}.sty`), loadFile(`G2/${missionName}.gmp`), loadFile(`G2/${missionName}.scr`), loadFile(`G2/e.gxt`)]
@@ -88,7 +107,7 @@ export async function loadAndCreate(missionName: string, renderer: WebGlCityRend
     const audio1 = null;
     const audio2 = null;
 
-    return new G2Game(map, style, await gameScript, texts, renderer, subtitleFont, subtitleFont, locationFont, carInfoFont, subtitleFont, subtitleFont, audio1, audio2);
+    return new G2Game(map, style, await gameScript, texts, rendererFactory(style), subtitleFont, subtitleFont, locationFont, carInfoFont, subtitleFont, subtitleFont, audio1, audio2);
 }
 
 // GUI elements:
@@ -127,3 +146,9 @@ const gui = {
     moneyNumbers: 158,
     locationPlate: [159, 160, 161, 162],
 };
+
+const characterAnimation: ICharacterAnimation = {
+    walk: [0,1,2,3,4,5,6,7],
+    run: [8,9,10,11,12,13,14,15],
+    stand: [53,54,55,56],
+}
