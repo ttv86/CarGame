@@ -1,4 +1,4 @@
-import { IGameMap, ILight, IArea, IBlock, ILid, IWall, Collision, TextureTransform } from "../Interfaces";
+import { IGameMap, ILight, IArea, IBlock, ITileInfo, Collision, TextureTransform } from "../Interfaces";
 import { BinaryReader } from "../BinaryReader";
 import TextContainer from "./TextContainer";
 
@@ -176,7 +176,7 @@ function createBlock(info: { left: number, right: number, top: number, bottom: n
     };
 }
 
-function decodeLid(value: number): ILid | null {
+function decodeLid(value: number): ITileInfo | null {
     if (value > 0) {
         const transform: TextureTransform = ((value >> 11) & 4) | ((value >> 14) & 3);
         const tileIndex = value & 1023;
@@ -192,7 +192,7 @@ function decodeLid(value: number): ILid | null {
     return null;
 }
 
-function decodeWall(value: number, reverse: number): IWall | null {
+function decodeWall(value: number, reverse: number): ITileInfo | null {
     if (value > 0) {
         const thisTransparent = ((value >> 12) & 1) == 1;
         const reverseTransparent = ((reverse >> 12) & 1) === 1;

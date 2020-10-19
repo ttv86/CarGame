@@ -12,12 +12,12 @@ export interface IGameMap {
 type Slope = number;
 
 export interface IBlock {
-    readonly top: IWall | null;
-    readonly bottom: IWall | null;
-    readonly left: IWall | null;
-    readonly right: IWall | null;
-    readonly lid: ILid | null;
-    readonly slope: Slope;
+    readonly top: ITileInfo | null;
+    readonly bottom: ITileInfo | null;
+    readonly left: ITileInfo | null;
+    readonly right: ITileInfo | null;
+    readonly lid: ITileInfo | null;
+    readonly slope?: Slope;
 }
 
 export interface ILight {
@@ -27,35 +27,18 @@ export interface ILight {
     //intensity, shape, onTime, offTime
 }
 
-export interface IWall {
-    /** Index of texture from attached style file. */
+export interface ITileInfo {
+    /** Index of texture from attached style file. This is applied to the "front" of the tile. */
     readonly tileIndex: number;
 
-    /** Index of texture from attached style file. */
+    /** Whether objects can go through this wall. */
+    readonly collision: Collision;
+
+    /** Index of texture from attached style file. This is applied to the "back" of the tile. */
     readonly backTileIndex?: number;
 
     /** Adjust tile light level. */
     readonly lightLevel?: LightLevel;
-
-    /** Whether objects can go through this wall. */
-    readonly collision?: Collision;
-
-    /** Whether render texture as transparent instead of opaque. */
-    readonly transparent?: boolean;
-
-    /** Transformation of texture. */
-    readonly transform?: TextureTransform;
-}
-
-export interface ILid {
-    /** Texture that shows outside of the block. Index of texture from attached style file. */
-    readonly tileIndex: number;
-
-    /** Adjust tile light level. */
-    readonly lightLevel?: LightLevel;
-
-    /** Whether objects can go through this the lid. */
-    readonly collision?: Collision;
 
     /** Whether render texture as transparent instead of opaque. */
     readonly transparent?: boolean;
@@ -79,8 +62,8 @@ export interface IStyle {
     getSpritePosition(spriteIndex: number): ISpriteLocation | null;
     getVehicleInfo(model: number): IVehicleInfo;
     getVehicleModelByType(type: VehicleType): number | null;
-    getLidTileTexCoords(lid: ILid): ITextureLocation;
-    getSideTileTexCoords(wall: IWall): ITextureLocation;
+    getLidTileTexCoords(lid: ITileInfo): ITextureLocation;
+    getSideTileTexCoords(wall: ITileInfo): ITextureLocation;
 }
 
 export interface IVehicleInfo {
@@ -133,16 +116,16 @@ export enum LightLevel {
 
 export enum Collision {
     /** Everything can go through this. */
-    NoCollision,
+    NoCollision = 0,
 
     /** Vehicles collide, but smaller objects can go though. */
-    VehicleCollision,
+    VehicleCollision = 1,
 
     /** Characters and vehicles collide, but small objects can go through. */
-    CharacterCollision,
+    CharacterCollision = 2,
 
     /** Nothing can go through. */
-    Solid,
+    Solid = 3,
 }
 
 export interface ITextureLocation {

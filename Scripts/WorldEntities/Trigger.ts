@@ -12,7 +12,7 @@ export default class Trigger extends Entity {
     private readonly y2: number;
 
     constructor(game: Game, renderer: IRenderer, style: IStyle, x: number, y: number, z: number, size: number) {
-        super(size, size, 0);
+        super(game, size, size, 0);
         this.x = x;
         this.y = y;
         this.z = z;

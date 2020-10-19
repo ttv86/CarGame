@@ -1,4 +1,4 @@
-import { IStyle, IVehicleInfo, ILid, ITextureLocation, IWall, ISpriteLocation, VehicleType, IFont } from "../Interfaces";
+import { IStyle, IVehicleInfo, ITileInfo, ITextureLocation, ISpriteLocation, VehicleType, IFont } from "../Interfaces";
 import { BinaryReader } from "../BinaryReader";
 import { TextChars } from "./TextContainer";
 
@@ -260,11 +260,11 @@ export default class Style implements IStyle {
         return null;
     }
 
-    public getLidTileTexCoords(lid: ILid): ITextureLocation {
+    public getLidTileTexCoords(lid: ITileInfo): ITextureLocation {
         return this.getTileTexCoords(lid.tileIndex);
     }
 
-    public getSideTileTexCoords(wall: IWall): ITextureLocation {
+    public getSideTileTexCoords(wall: ITileInfo): ITextureLocation {
         return this.getTileTexCoords(wall.tileIndex);
     }
 

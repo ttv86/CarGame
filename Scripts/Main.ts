@@ -56,7 +56,8 @@ async function startGame() {
 
         const rendererFactory = (style: IStyle) => new WebGlCityRenderer(canvas, style);
         //const game = await (await import("./DataReaders/G1/G1Game")).loadAndCreate(1, renderer, loadFile);
-        const game = await (await import("./DataReaders/G2/G2Game")).loadAndCreate("wil", rendererFactory, loadFile);
+        //const game = await (await import("./DataReaders/G2/G2Game")).loadAndCreate("wil", rendererFactory, loadFile);
+        const game = await (await import("./DataReaders/Ref/RefGame")).loadAndCreate(rendererFactory, loadFile);
 
         window.addEventListener("keydown", (ev) => game.keyDown(ev.keyCode));
         window.addEventListener("keyup", (ev) => game.keyUp(ev.keyCode));

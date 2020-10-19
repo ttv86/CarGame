@@ -12,8 +12,8 @@ export default class Vehicle extends Entity {
     private turning = false;
     private wheelAngle = 0;
 
-    constructor(info: IVehicleInfo) {
-        super(0, 0, 0);
+    constructor(game: Game, info: IVehicleInfo) {
+        super(game, 0, 0, 0);
         //super(game, renderer, style, 0, x, y, z);
         throw new Error("Not implemented");
         //super(game, renderer, style, info.sprNum + style.spriteOffsets.Car, x, y, z);
@@ -97,7 +97,7 @@ export default class Vehicle extends Entity {
     public driver: Character | null = null;
     public charactersInVehicle: Character[] = [];
 
-    public hitTest(x: number, y: number, z: number): boolean {
+    public hitTest(x: number, y: number, z: number): number {
         //const tileX = Math.floor(x / 64);
         //const tileY = Math.floor(y / 64);
         //const tileZ = Math.floor(z / 64);
@@ -106,7 +106,7 @@ export default class Vehicle extends Entity {
         //    return block.type === 5;
         //}
 
-        return false;
+        return 0;
     }
 
     public getSpriteIndex(): number {

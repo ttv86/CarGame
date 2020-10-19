@@ -29,7 +29,7 @@ export default class G1Game extends Game {
     }
 
     public addPlayer(x: number, y: number, z: number, angle: number): Character {
-        this.player = new Character(characterAnimation, x, y, z, angle);
+        this.player = new Character(this, characterAnimation, x, y, z, angle);
         this.renderer.worldEntities.push(this.player);
         return this.player;
     }

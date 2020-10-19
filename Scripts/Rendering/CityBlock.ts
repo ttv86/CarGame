@@ -1,5 +1,5 @@
 import { Point } from "../Types";
-import { IGameMap, IStyle, TextureTransform, IBlock, IWall, ILid, ITextureLocation } from "../DataReaders/Interfaces";
+import { IGameMap, IStyle, TextureTransform, IBlock, ITileInfo, ITextureLocation } from "../DataReaders/Interfaces";
 import WebGlRenderer from "./WebGlCityRenderer";
 import Model, { IModelData } from "./Model";
 
@@ -56,7 +56,7 @@ export default class CityBlock {
 
             for (let y = yy; y < yy + blockSize; y++) {
                 for (let x = xx; x < xx + blockSize; x++) {
-                    //let i = 6; {
+                    //let i = 2; {
                     for (let i = 0; i < map.maxAltitude; i++) {
                         const block = map.getBlock(x, y, i);
                         if (!block) {
@@ -72,7 +72,9 @@ export default class CityBlock {
                         const bottomSouthWest: Point = renderer.coordinateToWorldPoint(x, (y + 1), (i - 1));
                         const bottomSouthEast: Point = renderer.coordinateToWorldPoint((x + 1), (y + 1), (i - 1));
 
-                        adjustSlope(block.slope, topNorthWest, topNorthEast, topSouthWest, topSouthEast, bottomNorthWest, bottomNorthEast, bottomSouthWest, bottomSouthEast);
+                        if (block.slope) {
+                            adjustSlope(block.slope, topNorthWest, topNorthEast, topSouthWest, topSouthEast, bottomNorthWest, bottomNorthEast, bottomSouthWest, bottomSouthEast);
+                        }
 
                         this.addLid(block.lid, topNorthWest, topNorthEast, topSouthWest, topSouthEast, modelData);
                         this.addSide(block.bottom, topSouthWest, topSouthEast, bottomSouthWest, bottomSouthEast, modelData);
@@ -107,8 +109,8 @@ export default class CityBlock {
         }
     }
 
-    private addLid(lid: ILid | null, point1: Point, point2: Point, point3: Point, point4: Point, modelData: IModelDataBuilder) {
-        if (lid && (lid.transparent === modelData.transparent)) {
+    private addLid(lid: ITileInfo | null, point1: Point, point2: Point, point3: Point, point4: Point, modelData: IModelDataBuilder) {
+        if (lid && ((lid.transparent ?? false) === modelData.transparent)) {
             // TODO:
             //if (animLidBlocks.indexOf(lid.tileIndex) > -1) {
             //    animTexCoords.push(modelData.textureCoords.length);
@@ -141,8 +143,8 @@ export default class CityBlock {
         }
     }
 
-    private addSide(side: IWall | null, point1: Point, point2: Point, point3: Point, point4: Point, modelData: IModelDataBuilder) {
-        if (side && (side.tileIndex >= 0) && (side.transparent === modelData.transparent)) {
+    private addSide(side: ITileInfo | null, point1: Point, point2: Point, point3: Point, point4: Point, modelData: IModelDataBuilder) {
+        if (side && (side.tileIndex >= 0) && ((side.transparent ?? false) === modelData.transparent)) {
             // TODO:
             //if (animSideBlocks.indexOf(side.tileIndex) > -1) {
             //    animTexCoords.push(modelData.textureCoords.length);

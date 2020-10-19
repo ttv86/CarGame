@@ -16,8 +16,8 @@ export default class Character extends Entity {
     private currentAnimation: keyof ICharacterAnimation = "stand";
     private hadCommand: boolean = false;
 
-    constructor(animation: ICharacterAnimation, x: number, y: number, z: number, facing: number) {
-        super(13 / 64, 5 / 64, 1 / 64);
+    constructor(game: Game, animation: ICharacterAnimation, x: number, y: number, z: number, facing: number) {
+        super(game, 13 / 64, 5 / 64, 1 / 64);
         this.x = x;
         this.y = y;
         this.z = z;
@@ -33,10 +33,12 @@ export default class Character extends Entity {
     public vehicle: Vehicle | null;
 
     public do(command: string, time: number) {
+        let deltaX = 0;
+        let deltaY = 0;
         switch (command) {
             case "walk":
-                this.x += Math.sin(this.rotation) * time * walkSpeed;
-                this.y += Math.cos(this.rotation) * time * walkSpeed;
+                deltaX = Math.sin(this.rotation) * time * walkSpeed;
+                deltaY = Math.cos(this.rotation) * time * walkSpeed;
                 this.hadCommand = true;
                 if (this.currentAnimation !== "run") {
                     this.animationFrame = 0;
@@ -44,8 +46,8 @@ export default class Character extends Entity {
                 }
                 break;
             case "retreat":
-                this.x -= Math.sin(this.rotation) * time * walkSpeed;
-                this.y -= Math.cos(this.rotation) * time * walkSpeed;
+                deltaX = Math.sin(this.rotation) * time * walkSpeed;
+                deltaY -= Math.cos(this.rotation) * time * walkSpeed;
                 this.hadCommand = true;
                 break;
             case "turnLeft":
@@ -56,6 +58,15 @@ export default class Character extends Entity {
                 this.rotation -= time * turnSpeed;
                 this.hadCommand = true;
                 break;
+        }
+
+        if ((deltaX !== 0) || (deltaY !== 0)) {
+            const newX = this.x + deltaX;
+            const newY = this.y + deltaY;
+            if (this.hitTest(newX, newY, this.z + this.depth) === 0) {
+                this.x = newX;
+                this.y = newY;
+            }
         }
     }
 

@@ -1,0 +1,59 @@
+{
+  "blocks": {
+    " ": {},
+    "X": {
+      "lid": { "tileIndex": 1 },
+      "top": { "tileIndex": 2 },
+      "left": { "tileIndex": 2 },
+      "right": { "tileIndex": 2 },
+      "bottom": { "tileIndex": 2 }
+    },
+    "G": {
+      "lid": { "tileIndex": 3 }
+    },
+    "R": {
+      "lid": { "tileIndex": 4 }
+    },
+    "1": {
+      "road": "right"
+    },
+    "2": {
+      "inherit": "1",
+      "road": "down"
+    },
+    "3": {
+      "inherit": "1",
+      "road": "left"
+    },
+    "4": {
+      "inherit": "1",
+      "road": "up"
+    }
+  },
+  "data": [
+    [
+      "          ",
+      " GGGGGGGG ",
+      " GRRRRRRG ",
+      " GRGGGGRG ",
+      " GRG  GRG ",
+      " GRG  GRG ",
+      " GRGGGGRG ",
+      " GRRRRRRG ",
+      " GGGGGGGG ",
+      "          "
+    ],
+    [
+      "XXXXXXXXXX",
+      "X        X",
+      "X 111112 X",
+      "X 4    2 X",
+      "X 4 XX 2 X",
+      "X 4 XX 2 X",
+      "X 4    2 X",
+      "X 433333 X",
+      "X        X",
+      "XXXXXXXXXX"
+    ]
+  ]
+}

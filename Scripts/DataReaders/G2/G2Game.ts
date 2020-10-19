@@ -79,7 +79,7 @@ export default class G2Game extends Game {
             walk: characterAnimation.walk.map(addBase),
             run: characterAnimation.run.map(addBase),
         };
-        const character = new Character(frames, x, y, z - 0.99, angle);
+        const character = new Character(this, frames, x, y, z - 1, angle); // Subtract 1 from height, since objects should be at the bottom of the block.
         this.renderer.worldEntities.push(character);
         return character;
     }

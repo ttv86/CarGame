@@ -1,4 +1,4 @@
-import { IGameMap, IBlock, IWall, ILid, ILight, Collision, TextureTransform, IArea } from "../Interfaces";
+import { IGameMap, IBlock, ITileInfo, ILight, Collision, TextureTransform, IArea } from "../Interfaces";
 import { BinaryReader } from "../BinaryReader";
 import TextContainer from "./TextContainer";
 
@@ -285,6 +285,7 @@ class MapBlock implements IBlock {
 
         this.lid = lid ? {
             tileIndex: lid,
+            collision: Collision.Solid,
             lightLevel: this.remap,
             transparent: this.flat,
             transform: this.lidRotation,
@@ -304,11 +305,11 @@ class MapBlock implements IBlock {
     public readonly flipLeftRight: boolean;
     public readonly railway: boolean;
 
-    public readonly left: IWall | null;
-    public readonly right: IWall | null;
-    public readonly top: IWall | null;
-    public readonly bottom: IWall | null;
-    public readonly lid: ILid | null;
+    public readonly left: ITileInfo | null;
+    public readonly right: ITileInfo | null;
+    public readonly top: ITileInfo | null;
+    public readonly bottom: ITileInfo | null;
+    public readonly lid: ITileInfo | null;
 }
 
 function clamp(value: number, min: number, max: number): number {

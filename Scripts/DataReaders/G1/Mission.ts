@@ -790,7 +790,7 @@ export default class Mission extends GameScriptBase {
     private initParkedPixels(line: number, reset: boolean, coordinates: ICoordinates, carType: number, angle: number): Vehicle | null {
         const info = this.game.style.getVehicleInfo(carType);
         if (info) {
-            const vehicle = new Vehicle(/*coordinates.x, coordinates.y, coordinates.z, angle / 512 * Math.PI,*/ info);
+            const vehicle = new Vehicle(this.game, /*coordinates.x, coordinates.y, coordinates.z, angle / 512 * Math.PI,*/ info);
             this.game.renderer.worldEntities.push(vehicle);
             this.game.vehicles.push(vehicle);
         //    const vehicle = new Vehicle(coordinates.x / 64, coordinates.y / 64, coordinates.z / 64, angle, info);

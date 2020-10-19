@@ -1,5 +1,5 @@
 import { BinaryReader } from "../BinaryReader";
-import { IStyle, IWall, IVehicleInfo, VehicleType, ILid, ISpriteLocation, ITextureLocation, LightLevel } from "../Interfaces";
+import { IStyle, ITileInfo, IVehicleInfo, VehicleType, ISpriteLocation, ITextureLocation, LightLevel } from "../Interfaces";
 import GameMap from "./GameMap";
 
 const margin = 2;
@@ -107,7 +107,7 @@ export default class Style implements IStyle {
         return null;
     }
 
-    public getLidTileTexCoords(lid: ILid): ITextureLocation {
+    public getLidTileTexCoords(lid: ITileInfo): ITextureLocation {
         const tileIndex = (this.sideTiles + lid.tileIndex) * 4 + (lid.lightLevel ?? LightLevel.Normal);
         const x = ((tileIndex % tilesPerRow) * tileSizeWithMargin + margin) / tileTextureSize;
         const y = (Math.floor(tileIndex / tilesPerRow) * tileSizeWithMargin + margin) / tileTextureSize;
@@ -115,7 +115,7 @@ export default class Style implements IStyle {
         return { tX: x, tY: y, tW: tileSize / tileTextureSize, tH: tileSize / tileTextureSize };
     }
 
-    public getSideTileTexCoords(wall: IWall): ITextureLocation {
+    public getSideTileTexCoords(wall: ITileInfo): ITextureLocation {
         const tileIndex = wall.tileIndex * 4;
         const x = ((tileIndex % tilesPerRow) * tileSizeWithMargin + margin) / tileTextureSize;
         const y = (Math.floor(tileIndex / tilesPerRow) * tileSizeWithMargin + margin) / tileTextureSize;

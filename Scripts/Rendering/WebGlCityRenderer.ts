@@ -113,7 +113,7 @@ export default class WebGlRenderer extends WebGlBaseRenderer implements IRendere
         for (const entity of this.worldEntities) {
             //if (entity.visible) {
             mat4.identity(view);
-            const worldPoint = this.coordinateToWorldPoint(entity.x, entity.y, entity.z);
+            const worldPoint = this.coordinateToWorldPoint(entity.x, entity.y, entity.z + entity.depth);
             mat4.translate(view, view, [worldPoint[0] - this.x, this.y - worldPoint[1], -worldPoint[2]]);
                 mat4.rotateZ(view, view, entity.rotation);
                 //mat4.translate(view, view, [-entity.width / 2, entity.height / 2, 0]);
@@ -168,9 +168,10 @@ export default class WebGlRenderer extends WebGlBaseRenderer implements IRendere
         const tileSize = (1 / 32);
 
         const min = -(blockSize / 2);
-        const max = 256 + (blockSize / 2);
-        for (let yy = min; yy < max; yy += blockSize) {
-            for (let xx = min; xx < max; xx += blockSize) {
+        const maxX = map.width + (blockSize / 2);
+        const maxY = map.height + (blockSize / 2);
+        for (let yy = min; yy < maxY; yy += blockSize) {
+            for (let xx = min; xx < maxX; xx += blockSize) {
                 this.blocks.push(new CityBlock(this, map, style, blockSize, 0, 10, xx, yy, tileSize, 1, style.tileImageData, new Map<string, number>()));
             }
         }

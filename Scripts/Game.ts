@@ -30,7 +30,7 @@ export default class Game {
     public player: Character | null = null;
     public vehicles: Vehicle[] = [];
     //public camera: [number, number, number] = [128, 128, 10];
-    public camera: [number, number, number] = [150, 123, 10];
+    public camera: [number, number, number];
     public targetScore: number = 0;
     public secretMissions: number = 0;
     public score: number = 0;
@@ -58,6 +58,7 @@ export default class Game {
         this.keyboard = new KeyboardHandler();
         this.globalAudio = globalAudio;
         this.localAudio = localAudio;
+        this.camera = [this.map.width / 2, this.map.height / 2, this.map.maxAltitude + 5];
 
         renderer.guiWidgets = this.guiWidgets;
         renderer.buildCityModel(map, style);
