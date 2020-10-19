@@ -26,7 +26,10 @@ if (app) {
             minHeight: 240,
             title: "Car Game",
             webPreferences: {
-                nodeIntegration: true
+                nodeIntegration: true,
+                worldSafeExecuteJavaScript: true,
+                contextIsolation: true,
+                preload: join(__dirname, "preload.js"),
             }
         });
 

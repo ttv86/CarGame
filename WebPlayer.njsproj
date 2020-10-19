@@ -5,8 +5,7 @@
     <Name>ElectronPlayer</Name>
     <RootNamespace>ElectronPlayer</RootNamespace>
     <SaveNodeJsSettingsInProjectFile>True</SaveNodeJsSettingsInProjectFile>
-    <NodeExePath>
-    </NodeExePath>
+    <NodeExePath>C:\Users\timov\source\repos\Gta1Player\WebPlayer\node_modules\electron\dist\electron.exe</NodeExePath>
     <NodeExeArguments>
     </NodeExeArguments>
   </PropertyGroup>
@@ -73,6 +72,9 @@
     <Folder Include="wwwroot\RefLevel\" />
   </ItemGroup>
   <ItemGroup>
+    <TypeScriptCompile Include="preload.ts">
+      <SubType>Code</SubType>
+    </TypeScriptCompile>
     <TypeScriptCompile Include="Scripts\DataReaders\G1\Audio.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
@@ -119,6 +121,9 @@
       <SubType>Code</SubType>
     </TypeScriptCompile>
     <TypeScriptCompile Include="Scripts\DataReaders\Ref\Style.ts">
+      <SubType>Code</SubType>
+    </TypeScriptCompile>
+    <TypeScriptCompile Include="Scripts\ElectronBridge.d.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
     <TypeScriptCompile Include="Scripts\GameScriptBase.ts">

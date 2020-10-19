@@ -4,44 +4,21 @@ import { IStyle } from "./DataReaders/Interfaces";
 let gameDataDir: string | null = null;
 function loadFile(filename: string): Promise<DataView> {
     return new Promise((resolve, reject) => {
-        function makeRequest(uri: string) {
-            fetch(uri)
+        let request: Promise<ArrayBuffer>;
+        if (electronBridge?.fetch) {
+            request = electronBridge.fetch(filename)
+        } else {
+            request = fetch(`/${filename}`)
                 .then(r => {
                     if (!r.ok) {
                         throw new Error(r.statusText);
                     }
 
                     return r.arrayBuffer();
-                })
-                .then(ab => resolve(new DataView(ab)), () => reject());
-        }
-
-        if (window.require) {
-            // We are in electron app. Use ipc-interface to request file location.
-            if (!gameDataDir) {
-                const { ipcRenderer } = window.require("electron");
-
-                ipcRenderer.on("got-gameDataDir", (event: never, arg: string) => {
-                    if (arg) {
-                        gameDataDir = arg;
-                        if ((gameDataDir.substr(-1) !== "/") && (gameDataDir.substr(-1) !== "\\")) {
-                            gameDataDir += "/";
-                        }
-
-                        makeRequest(gameDataDir + filename);
-                    } else {
-                        reject();
-                    }
                 });
-
-                ipcRenderer.send("get-gameDataDir");
-            } else {
-                makeRequest(gameDataDir + filename);
-            }
-        } else {
-            // We are in browser. Use fetch-interface to request files from the server.
-            makeRequest(`/${filename}`);
         }
+
+        return request.then(ab => resolve(new DataView(ab)), () => reject());
     });
 }
 
