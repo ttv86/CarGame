@@ -21,7 +21,7 @@ function loadFile(filename: string): Promise<DataView> {
             if (!gameDataDir) {
                 const { ipcRenderer } = window.require("electron");
 
-                ipcRenderer.on("got-gameDataDir", (_, arg: string) => {
+                ipcRenderer.on("got-gameDataDir", (event: never, arg: string) => {
                     if (arg) {
                         gameDataDir = arg;
                         if ((gameDataDir.substr(-1) !== "/") && (gameDataDir.substr(-1) !== "\\")) {
