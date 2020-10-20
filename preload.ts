@@ -6,8 +6,8 @@ import { join } from "path"
 // Set this to where original game is installed.
 let userSettings: { dataPaths: Record<string, string> } = { dataPaths: {} };
 
-if (existsSync("path.user")) {
-    const userDataContent = readFileSync("path.user", "utf-8");
+if (existsSync("paths.json")) {
+    const userDataContent = readFileSync("paths.json", "utf-8");
     try {
         userSettings = JSON.parse(userDataContent);
     } catch (error) {

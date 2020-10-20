@@ -1,11 +1,15 @@
 # Ignore TypeScript generated files.
 app.js
+preload.js
 Scripts/**/*.js
 wwwroot/**/*.js
 *.map
 
 # Ignore npm packages.
 node_modules/
+
+# Ignore user specific data path file
+paths.json
 
 # Ignore temporary files created by Visual Studio
 [Bb]in/

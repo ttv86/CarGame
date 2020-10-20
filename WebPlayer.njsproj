@@ -37,6 +37,7 @@
     <Content Include="docs\Blocks.html">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="paths.json" />
     <Content Include="Scripts\MainMenu.ts">
       <SubType>Code</SubType>
     </Content>
