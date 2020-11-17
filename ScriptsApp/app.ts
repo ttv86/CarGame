@@ -34,7 +34,7 @@ if (app) {
         });
 
         // Load the index.html of the app.
-        win.loadFile('wwwroot/index.html');
+        win.loadFile('../wwwroot/index.html');
 
         // Main menu should only contain reload and close buttons.
         const menu = Menu.buildFromTemplate([
@@ -100,7 +100,7 @@ if (app) {
             return;
         }
 
-        let dir = join(__dirname, "wwwroot");
+        let dir = join(__dirname, "../wwwroot");
         for (const key in userSettings.dataPaths) {
             const urlPart = `/${key}/`
             if (url.indexOf(urlPart) === 0) {

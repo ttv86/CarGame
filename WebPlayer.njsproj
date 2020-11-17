@@ -15,7 +15,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>8f5531ce-39c1-44ea-8a6d-3295cb883012</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>app.ts</StartupFile>
+    <StartupFile>ScriptsApp\app.ts</StartupFile>
     <StartWebBrowser>False</StartWebBrowser>
     <SearchPath>
     </SearchPath>
@@ -38,27 +38,34 @@
       <SubType>Code</SubType>
     </Content>
     <Content Include="paths.json" />
+    <Content Include="ScriptsApp\tsconfig.json" />
+    <Content Include="ScriptsWorker\tsconfig.json">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="Scripts\MainMenu.ts">
       <SubType>Code</SubType>
     </Content>
     <Content Include="Scripts\Rendering\Shaders.ts">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="Scripts\tsconfig.json" />
     <Content Include="webpack.config.js" />
     <Content Include="wwwroot\RefLevel\TestLevel1.json">
       <SubType>Code</SubType>
     </Content>
     <Content Include="wwwroot\RefLevel\TestLevel1.png" />
-    <None Include="app.ts" />
+    <None Include="ScriptsApp\app.ts" />
     <Content Include="wwwroot\index.html">
       <SubType>Code</SubType>
     </Content>
     <Content Include="package.json" />
     <Content Include="README.md" />
-    <Content Include="tsconfig.json" />
+    <Content Include="tsconfig.base.json" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="docs\" />
+    <Folder Include="ScriptsApp\" />
+    <Folder Include="ScriptsWorker\" />
     <Folder Include="Scripts\" />
     <Folder Include="Scripts\DataReaders\G1\" />
     <Folder Include="Scripts\DataReaders\G2\" />
@@ -73,7 +80,10 @@
     <Folder Include="wwwroot\RefLevel\" />
   </ItemGroup>
   <ItemGroup>
-    <TypeScriptCompile Include="preload.ts">
+    <TypeScriptCompile Include="ScriptsApp\preload.ts">
+      <SubType>Code</SubType>
+    </TypeScriptCompile>
+    <TypeScriptCompile Include="ScriptsWorker\Main.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
     <TypeScriptCompile Include="Scripts\DataReaders\G1\Audio.ts">

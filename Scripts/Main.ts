@@ -5,7 +5,7 @@ let gameDataDir: string | null = null;
 function loadFile(filename: string): Promise<DataView> {
     return new Promise((resolve, reject) => {
         let request: Promise<ArrayBuffer>;
-        if (electronBridge?.fetch) {
+        if ((typeof electronBridge === "object") && electronBridge?.fetch) {
             request = electronBridge.fetch(filename)
         } else {
             request = fetch(`/${filename}`)
@@ -18,7 +18,7 @@ function loadFile(filename: string): Promise<DataView> {
                 });
         }
 
-        return request.then(ab => resolve(new DataView(ab)), () => reject());
+        return request.then(ab => resolve(new DataView(ab)), (error) => reject(error));
     });
 }
 

@@ -18,7 +18,7 @@ if (existsSync("paths.json")) {
 contextBridge.exposeInMainWorld("electronBridge", {
     fetch: (filename: string): Promise<ArrayBuffer> => {
         return new Promise<ArrayBuffer>((resolve, reject) => {
-            let dir = join(__dirname, "wwwroot");
+            let dir = join(__dirname, "../wwwroot");
             let url = join(dir, filename);
             for (const key in userSettings.dataPaths) {
                 const urlPart = `${key}/`
